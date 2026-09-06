@@ -1,0 +1,200 @@
+// Design artifact — not wired to a live database (1.overall-architecture.md,
+// "What is deliberately not built"). Checked offline via `npm run prisma:validate`
+// and used to generate the committed `prisma/init.sql` via `npm run prisma:diff`.
+// Source of truth for this file's shape: .claude/plans/5.storage.md — do not
+// re-derive or restate rationale here, only DDL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums that are genuinely per-row data ─────────────────────────────────────
+// Postgres-native enum: stored as a 4-byte OID, so it indexes and sorts like an int,
+// but reads and writes as text in every query and log. No join to know the platform.
+enum PlatformId {
+  INSTAGRAM
+  YOUTUBE
+}
+
+enum CommentStatus {
+  DRAFT
+  QUEUED
+  POSTED
+  FAILED
+  DELETED
+}
+
+// Ordered — each level switches on one more worker. The ordering is load-bearing:
+// effective = min(max, composition, post), and min needs a ranked set.
+// Prisma enums carry no order, so comparison uses a rank() helper in code.
+enum AutomationLevel {
+  OFF
+  COLLECT
+  DRAFT
+  REPLY
+}
+
+// ── Tenant ────────────────────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  displayName  String
+  hashedApiKey String   @unique // SHA-256, not bcrypt — API keys are high-entropy
+                                 // tokens, not passwords, so a slow adaptive hash buys nothing
+  createdAt    DateTime @default(now())
+
+  // A cap, never the level anything runs at. Rung 1 of three
+  maxCommentAutomationLevel AutomationLevel @default(COLLECT)
+
+  accounts     SocialAccount[]
+  compositions Composition[]
+  posts        Post[]
+}
+
+model SocialAccount {
+  id                String     @id @default(cuid())
+  userId            String
+  user              User       @relation(fields: [userId], references: [id])
+  platform          PlatformId
+  platformAccountId String
+  displayName       String
+  credentialRef     String     // reference into a secrets store — never a token value
+  createdAt         DateTime   @default(now())
+
+  posts    Post[]
+  comments Comment[]
+
+  // Scoped to the tenant, not global — two Blotato users may legitimately
+  // connect the same platform account (an agency and the brand itself)
+  @@unique([userId, platform, platformAccountId])
+}
+
+model Composition {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String   // authored original; Post.content overrides per platform
+  createdAt DateTime @default(now())
+
+  // Can only lower what the user's max allows. Rung 2
+  commentAutomationLevel AutomationLevel?
+
+  posts Post[]
+}
+
+model Post {
+  id             String        @id @default(cuid())
+  compositionId  String
+  composition    Composition   @relation(fields: [compositionId], references: [id])
+  userId         String        // denormalized from Composition — RLS + the unique below.
+                                // Real FK unlike Comment.userId: Post is low-volume, so the
+                                // hot-write-path argument for skipping it doesn't apply here
+  user           User          @relation(fields: [userId], references: [id])
+  accountId      String
+  account        SocialAccount @relation(fields: [accountId], references: [id])
+  platform       PlatformId
+  platformPostId String
+  content        String?       // null = use Composition.content
+  publishedAt    DateTime?     // null = not live yet. The only liveness signal needed
+  createdAt      DateTime      @default(now())
+
+  schedule PostSchedule?
+  comments Comment[]
+
+  // Mandatory back-half of the extension's @relation — Prisma refuses to compile a
+  // one-sided relation (5.storage.md, "The relation arrays cost nothing"). No code
+  // ever traverses these: each platform module's own repository fetches its extension
+  // by postId directly, which is what keeps Post ignorant of extensions in practice.
+  instagramPost InstagramPost?
+  youtubePost   YouTubePost?
+
+  @@unique([userId, platform, platformPostId]) // two tenants may track one public post
+}
+
+// ── Post extensions: sparse, shared PK, only where a fetch depends on the field ─
+model InstagramPost {
+  postId           String @id // PK *is* the FK — no surrogate id
+  post             Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mediaProductType String // FEED | REELS | STORY | AD — Stories have no comments.
+                          // Terminal: a Story never becomes commentable, so retire it
+}
+
+model YouTubePost {
+  postId        String @id
+  post          Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  privacyStatus String // public | unlisted | private — private hides comments.
+                        // Transient: can flip back, so suspend rather than retire
+}
+
+// ── Automation + polling state. Row is materialized when effective level > OFF ─
+model PostSchedule {
+  postId String @id
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // The POST's level, stored here because this is the post's 1:1 automation table. Rung 3
+  commentAutomationLevel AutomationLevel?
+
+  nextPollAfter   DateTime // the scheduler's claim key; jittered
+  pollIntervalSec Int
+  emptyPollCount  Int      @default(0)
+  commentVelocity Float? // decaying avg, comments/hour → target-yield interval
+  cursor          String? // used when the platform's syncMode is 'cursor'
+  lastSyncedAt    DateTime? // the `since` filter otherwise; velocity elapsed-time either way
+  retiredAt       DateTime? // polling stopped (~14d); data retained to 45d
+  createdAt       DateTime @default(now())
+
+  @@index([nextPollAfter]) // no partial predicate needed — table is already the sparse subset
+}
+
+// ── Comment: inbound audience rows and our outbound replies, one table ────────
+model Comment {
+  id                String        @id @default(cuid())
+  userId            String        // denormalized so RLS needn't join through account
+  accountId         String
+  account           SocialAccount @relation(fields: [accountId], references: [id])
+  platform          PlatformId
+  postId            String        // never null — we only observe posts we track
+  post              Post          @relation(fields: [postId], references: [id])
+  compositionId     String        // denormalized — GET /comments?compositionId= is a core read
+  parentCommentId   String?       // OUR cuid. Bare scalar, deliberately no FK — see notes
+
+  platformPostId          String
+  platformCommentId       String? // null until an outbound reply is confirmed
+  platformParentCommentId String? // the PLATFORM's parent id — a different namespace from
+                                  // parentCommentId above, so one column can't serve both
+  platformAccountId       String  // the author's account id ON THE PLATFORM. Always set:
+                                  // isAuthor = (this == SocialAccount.platformAccountId).
+                                  // With `text`, the only audience PII stored; a right-to-
+                                  // erasure request nulls both
+  isAuthor          Boolean  // true = our own reply
+  text              String
+  platformCreatedAt DateTime // when it was written ON THE PLATFORM — not createdAt,
+                             // which is when we ingested it. See notes
+
+  // Outcome AND the pending predicate: QUEUED on an outbound row = a reply is still owed.
+  // Deliberately unindexed — the pipeline reaches these by post, so the one write per
+  // reply stays HOT (see notes)
+  status       CommentStatus
+  errorCode    String? // last failure, ours or the platform's — see notes
+  errorMessage String?
+
+  // Idempotency — contract in 2.api-surface.md. Null on every inbound comment and
+  // every generator-written reply, hence the partial index (raw SQL; Prisma can't
+  // express a partial unique index — appended by hand to prisma/init.sql):
+  //   CREATE UNIQUE INDEX ON comment (user_id, idempotency_key)
+  //     WHERE idempotency_key IS NOT NULL;
+  idempotencyKey String?
+  requestHash    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform, platformCommentId]) // re-ingesting our own reply is an upsert
+  @@index([compositionId, platformCreatedAt]) // ?compositionId= — across platforms
+  @@index([postId, platformCreatedAt]) // ?postId= — one platform
+  @@index([parentCommentId, isAuthor]) // "already replied?" — the generator's claim query
+}

@@ -1,0 +1,48 @@
+{
+  "name": "blotato-comments-service",
+  "version": "1.0.0",
+  "description": "Take-home: multi-platform comment system for a social media scheduling API",
+  "private": true,
+  "scripts": {
+    "dev:api": "nest start --watch",
+    "start:api": "node dist/main.web.js",
+    "dev:worker": "node --watch dist/main.worker.js",
+    "start:worker": "node dist/main.worker.js",
+    "build": "nest build",
+    "build:watch": "nest build --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prisma:validate": "prisma validate",
+    "prisma:diff": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.0",
+    "@nestjs/core": "^10.4.0",
+    "@nestjs/platform-express": "^10.4.0",
+    "@nestjs/swagger": "^8.0.0",
+    "@paralleldrive/cuid2": "^2.2.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.0",
+    "@nestjs/testing": "^10.4.0",
+    "@types/node": "^20.14.10",
+    "@types/supertest": "^6.0.2",
+    "prisma": "^5.20.0",
+    "supertest": "^7.0.0",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.5"
+  },
+  "allowScripts": {
+    "prisma@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.21.5": true,
+    "@nestjs/core@10.4.22": true
+  },
+  "overrides": {
+    "@scarf/scarf": "npm:empty-npm-package@1.0.0"
+  }
+}
