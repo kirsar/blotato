@@ -1,4 +1,4 @@
-import type { PlatformId } from '@platforms/platform-id';
+import type { PlatformId } from './platform-id';
 import type { AutomationLevel } from './automation';
 
 export interface Post {
@@ -20,6 +20,8 @@ export interface PostSchedule {
   pollIntervalSec: number;
   emptyPollCount: number;
   commentVelocity: number | null;
+  // TODO: that's where we can work more on platfroms extensions
+  // some social platfroms uses cursors, some timestamps
   cursor: string | null;
   lastSyncedAt: Date | null;
   retiredAt: Date | null;

@@ -1,4 +1,4 @@
-import type { PlatformId } from '@platforms/platform-id';
+import type { PlatformId } from './platform-id';
 
 export interface SocialAccount {
   id: string;

@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UnauthorizedError } from '@domain/errors';
-import { SEED_USER } from '@storage/in-memory/seed';
+import { SEED_USER } from '@repository/in-memory/seed';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
 interface RequestWithUserId {
@@ -29,12 +28,12 @@ export class ApiKeyGuard implements CanActivate {
     const apiKey = request.headers['blotato-api-key'];
 
     if (typeof apiKey !== 'string' || apiKey.length === 0) {
-      throw new UnauthorizedError('Missing blotato-api-key header');
+      throw new UnauthorizedException('Missing blotato-api-key header');
     }
 
     const hashed = createHash('sha256').update(apiKey).digest('hex');
     if (hashed !== SEED_USER.hashedApiKey) {
-      throw new UnauthorizedError('Invalid API key');
+      throw new UnauthorizedException('Invalid API key');
     }
 
     request.userId = SEED_USER.id;
