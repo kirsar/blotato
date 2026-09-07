@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { SEED_USER } from '@repository/in-memory/seed';
+import type { UserRepository } from '@repository/user.repository.contract';
+import { USER_REPOSITORY } from '@repository/tokens';
 import { IS_PUBLIC_KEY } from './public.decorator';
 
 interface RequestWithUserId {
@@ -9,15 +10,18 @@ interface RequestWithUserId {
   userId?: string;
 }
 
-// Hashed-key lookup -> userId (1.overall-architecture.md, §7.1). There is no
-// UserRepository for this take-home (User is schema-only) — the demo has exactly
-// one tenant, seeded in storage/in-memory/seed.ts, so this compares directly
-// against it rather than through a repository abstraction with one row in it.
+// Hashed-key lookup -> userId (1.overall-architecture.md, §7.1). The presented key is
+// hashed and matched against the stored hash through UserRepository, so this resolves
+// whichever tenant owns the key rather than comparing against a single hardcoded one —
+// the demo just happens to seed exactly one user (in-memory/seed.ts).
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -34,11 +38,12 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     const hashed = createHash('sha256').update(apiKey).digest('hex');
-    if (hashed !== SEED_USER.hashedApiKey) {
+    const user = await this.users.findByHashedApiKey(hashed);
+    if (!user) {
       throw new UnauthorizedException('Invalid API key');
     }
 
-    request.userId = SEED_USER.id;
+    request.userId = user.id;
     return true;
   }
 }

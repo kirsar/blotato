@@ -1,12 +1,22 @@
-import { Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { AutomationLevel, effective, rank } from '@domain/automation';
 import type { Composition } from '@domain/composition';
 import { PLATFORMS } from '@platforms/registry';
 import type { CompositionRepository } from '@repository/composition.repository.contract';
-import { SEED_USER } from '@repository/in-memory/seed';
 import type { PostRepository } from '@repository/post.repository.contract';
 import type { PostScheduleRepository } from '@repository/post-schedule.repository.contract';
-import { COMPOSITION_REPOSITORY, POST_REPOSITORY, POST_SCHEDULE_REPOSITORY } from '@repository/tokens';
+import type { UserRepository } from '@repository/user.repository.contract';
+import {
+  COMPOSITION_REPOSITORY,
+  POST_REPOSITORY,
+  POST_SCHEDULE_REPOSITORY,
+  USER_REPOSITORY,
+} from '@repository/tokens';
 import { type AutomationResponseDto, type PutAutomationDto } from './automation.dto';
 import { findOwnedComposition } from './find-owned-composition';
 
@@ -16,7 +26,20 @@ export class CommentAutomationService {
     @Inject(COMPOSITION_REPOSITORY) private readonly compositions: CompositionRepository,
     @Inject(POST_REPOSITORY) private readonly posts: PostRepository,
     @Inject(POST_SCHEDULE_REPOSITORY) private readonly postSchedules: PostScheduleRepository,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
   ) {}
+
+  // The tenant's own ceiling, resolved per request rather than read off a constant.
+  // effective() can only lower from here, which is what makes dropping a tenant's
+  // ceiling a working kill switch (domain/automation.ts).
+  private async ceilingFor(userId: string): Promise<AutomationLevel> {
+    const user = await this.users.findById(userId);
+    if (!user) {
+      // ApiKeyGuard already resolved this id, so a miss here is our own inconsistency.
+      throw new InternalServerErrorException(`User not found: ${userId}`);
+    }
+    return user.maxCommentAutomationLevel;
+  }
 
   // Turns automation on (fan-out): materializes a PostSchedule row for every post
   // under this composition, or un-retires one that already exists. Never raises past
@@ -28,7 +51,7 @@ export class CommentAutomationService {
     automationDto: PutAutomationDto,
   ): Promise<AutomationResponseDto> {
     await findOwnedComposition(this.compositions, userId, compositionId);
-    const ceiling = SEED_USER.maxCommentAutomationLevel;
+    const ceiling = await this.ceilingFor(userId);
 
     if (ceiling === AutomationLevel.OFF) {
       throw new UnprocessableEntityException('Automation is disabled for this account');
@@ -116,7 +139,7 @@ export class CommentAutomationService {
 
   async getAutomation(userId: string, compositionId: string): Promise<AutomationResponseDto> {
     const composition = await findOwnedComposition(this.compositions, userId, compositionId);
-    const ceiling = SEED_USER.maxCommentAutomationLevel;
+    const ceiling = await this.ceilingFor(userId);
     const posts = await this.posts.listByCompositionId(compositionId);
     return this.buildAutomationResponse(
       composition,

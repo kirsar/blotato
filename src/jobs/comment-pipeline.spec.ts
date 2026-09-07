@@ -15,6 +15,8 @@ import { InMemoryCommentRepository } from '@repository/in-memory/comment.reposit
 import { InMemoryCompositionRepository } from '@repository/in-memory/composition.repository';
 import { InMemoryPostRepository } from '@repository/in-memory/post.repository';
 import { InMemoryPostScheduleRepository } from '@repository/in-memory/post-schedule.repository';
+import { InMemoryUserRepository } from '@repository/in-memory/user.repository';
+import { seedUser, SEED_USER } from '@repository/in-memory/seed';
 import { createId } from '@repository/create-id';
 import { CommentPipelineService } from './comment-pipeline.service';
 
@@ -44,10 +46,12 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
     const posts = new InMemoryPostRepository();
     const comments = new InMemoryCommentRepository();
     const postSchedules = new InMemoryPostScheduleRepository();
+    const users = new InMemoryUserRepository();
+    await seedUser(users);
 
     const account = await accounts.create({
       id: createId(),
-      userId: 'user_demo',
+      userId: SEED_USER.id,
       platform: PlatformId.INSTAGRAM,
       platformAccountId: 'ig_demo_account',
       displayName: 'Demo Instagram',
@@ -57,7 +61,7 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
 
     const composition = await compositions.create({
       id: createId(),
-      userId: 'user_demo',
+      userId: SEED_USER.id,
       content: 'pipeline test composition',
       commentAutomationLevel: AutomationLevel.REPLY,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -66,7 +70,7 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
     const post: Post = await posts.create({
       id: createId(),
       compositionId: composition.id,
-      userId: 'user_demo',
+      userId: SEED_USER.id,
       accountId: account.id,
       platform: PlatformId.INSTAGRAM,
       platformPostId: 'platform_post_1',
@@ -110,6 +114,7 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
       compositions,
       accounts,
       comments,
+      users,
       replyGenerator,
       { reader: () => fakeProvider, writer: () => fakeProvider },
     );
@@ -142,6 +147,8 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
     const posts = new InMemoryPostRepository();
     const comments = new InMemoryCommentRepository();
     const postSchedules = new InMemoryPostScheduleRepository();
+    const users = new InMemoryUserRepository();
+    await seedUser(users);
     const replyGenerator = new StubReplyGenerator(accounts);
 
     const pipeline = new CommentPipelineService(
@@ -150,6 +157,7 @@ describe('CommentPipelineService — one pass end to end against the fakes', () 
       compositions,
       accounts,
       comments,
+      users,
       replyGenerator,
       {
         reader: () => {

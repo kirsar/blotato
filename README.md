@@ -38,7 +38,7 @@ npm test            # vitest — 54 tests
 npm run start:api
 ```
 
-Swagger UI: http://localhost:3000/
+Swagger UI: http://localhost:3000/docs
 Authorize via `demo-api-key`
 
 ## Database schema
@@ -64,7 +64,9 @@ I picked **2** — to showcase both design of extensible platforms and passion o
 
 ## Features
 
-- **Domain and capacity limits research** — It's not intended to be read by humans;
+- **Domain and capacity limits research** — start at [`CLAUDE.md`](./CLAUDE.md), the
+  agent entry point (constraints, invariants, and a map of the design corpus). The
+  corpus itself is not intended to be read by humans;
   please run an agent (Opus level preferred) to learn
   [the folder](./.claude/plans/) and start asking questions
   ([example](./.claude/architecture-chat-example.png)).
@@ -78,7 +80,7 @@ I picked **2** — to showcase both design of extensible platforms and passion o
   key, rather than one wide table or a generic key-value blob. See
   [`InstagramPost`](./src/platforms/instagram/instagram-post.ts) and
   [`YouTubePost`](./src/platforms/youtube/youtube-post.ts).
-- **Composition** — one authored piece of content, fanned out to a set og posts on multiple platforms at once.
+- **Composition** — one authored piece of content, fanned out to a set of posts on multiple platforms at once.
 - **Opt-in comment automation** — ability to turn comments automation on or off. A worker loop (claim → read → generate → write) ingests audience comments and posts replies on its own once automation is on.
 - **Webhook API (designed, stubbed as `501`)** — to let users avoid polling patterns.
   Routed and documented ([`src/api/subscription/`](./src/api/subscription/)), not
@@ -89,8 +91,6 @@ I picked **2** — to showcase both design of extensible platforms and passion o
   request spikes, and a poll window decoupled from the retention window so a post
   isn't polled forever just because its data is still queryable
   ([`src/jobs/scheduling.ts`](./src/jobs/scheduling.ts)).
-- **Some code is vibe-coded on purpose**, just to get an end-to-end system and test running —
-  `src/jobs/scheduling.ts`, `src/jobs/comment-pipeline.service.ts`.
 
 ## Repo overview
 

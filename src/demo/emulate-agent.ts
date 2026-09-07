@@ -1,4 +1,3 @@
-// NB: vibe-coded demo
 // Runs continuously until stopped (Ctrl+C / SIGINT) — not a one-shot script. Every
 // CREATE_INTERVAL_MS it creates a new composition+post as an external HTTP client
 // (alternating Instagram/YouTube), turns automation on, and every POLL_INTERVAL_MS

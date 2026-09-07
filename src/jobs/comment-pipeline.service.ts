@@ -1,4 +1,3 @@
-// NB: mainly wibe-coded, just to have some running job
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AutomationLevel, effective, rank } from '@domain/automation';
 import { CommentStatus } from '@domain/comment';
@@ -18,15 +17,16 @@ import type { AccountRepository } from '@repository/account.repository.contract'
 import type { CommentRepository } from '@repository/comment.repository.contract';
 import type { CompositionRepository } from '@repository/composition.repository.contract';
 import { createId } from '@repository/create-id';
-import { SEED_USER } from '@repository/in-memory/seed';
 import type { PostRepository } from '@repository/post.repository.contract';
 import type { PostScheduleRepository } from '@repository/post-schedule.repository.contract';
+import type { UserRepository } from '@repository/user.repository.contract';
 import {
   ACCOUNT_REPOSITORY,
   COMMENT_REPOSITORY,
   COMPOSITION_REPOSITORY,
   POST_REPOSITORY,
   POST_SCHEDULE_REPOSITORY,
+  USER_REPOSITORY,
 } from '@repository/tokens';
 import { backoffIntervalSec, decayVelocity, nextIntervalSec, shouldRetire, withJitter } from './scheduling';
 
@@ -34,7 +34,7 @@ const CLAIM_LIMIT = 50;
 // Decoupled from the 45-day retention window on purpose (0.capacity-planning.md,
 // "Mechanism 2") — a post can stay queryable well after it stops being worth
 // spending platform quota on.
-// for comment older then 14 days we need a dedicated low frequency queue
+// for comments older than 14 days we need a dedicated low-frequency queue
 const POLL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 // Only a subset of a provider's own reader/writer surface is needed here, so this
@@ -52,6 +52,7 @@ export class CommentPipelineService {
     @Inject(COMPOSITION_REPOSITORY) private readonly compositions: CompositionRepository,
     @Inject(ACCOUNT_REPOSITORY) private readonly accounts: AccountRepository,
     @Inject(COMMENT_REPOSITORY) private readonly comments: CommentRepository,
+    @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(REPLY_GENERATOR) private readonly replyGenerator: IReplyGenerator,
     // Explicit token even though ProviderRegistry is a class Nest could infer from
     // the parameter type — the parameter is typed as the narrower ProviderLookup so
@@ -104,14 +105,17 @@ export class CommentPipelineService {
 
     const composition = await this.compositions.findById(post.compositionId);
     const account = await this.accounts.findById(post.accountId);
-    if (!composition || !account) {
+    // The ceiling belongs to whoever owns this post — the worker bypasses RLS, so it
+    // resolves the owner per post rather than assuming one tenant.
+    const user = await this.users.findById(post.userId);
+    if (!composition || !account || !user) {
       return;
     }
 
     // effective() can only have gone down since PUT materialized this row — nothing
     // here can raise it — so a drop below COLLECT means retire rather than poll
     // (5.storage.md, "row existence is a consequence of the effective level").
-    if (rank(effective(SEED_USER, composition, schedule)) < rank(AutomationLevel.COLLECT)) {
+    if (rank(effective(user, composition, schedule)) < rank(AutomationLevel.COLLECT)) {
       this.logger.log(`post ${post.id}: retired (automation dropped below collect)`);
       await this.postSchedules.update(schedule.postId, { retiredAt: now });
       return;
@@ -210,10 +214,11 @@ export class CommentPipelineService {
     for (const schedule of schedules) {
       const post = await this.posts.findById(schedule.postId);
       const composition = post ? await this.compositions.findById(post.compositionId) : null;
-      if (!post || !composition) {
+      const user = post ? await this.users.findById(post.userId) : null;
+      if (!post || !composition || !user) {
         continue;
       }
-      if (rank(effective(SEED_USER, composition, schedule)) < rank(AutomationLevel.REPLY)) {
+      if (rank(effective(user, composition, schedule)) < rank(AutomationLevel.REPLY)) {
         continue;
       }
 

@@ -73,3 +73,15 @@ export class InvalidCursorError extends Error {
     this.name = 'InvalidCursorError';
   }
 }
+
+// A platform in PLATFORMS has no @PlatformProvider class registered for it. This is
+// a wiring fault in our own composition root, not something a platform did to us, so
+// it sits outside the six-error taxonomy above — no caller should catch it and back
+// off; it means a deploy is broken. Deliberately not a Nest HTTP exception: the only
+// caller is the worker (CommentPipelineService), which has no HTTP response to send.
+export class PlatformNotSupportedError extends Error {
+  constructor(readonly platform: string) {
+    super(`No provider registered for platform: ${platform}`);
+    this.name = 'PlatformNotSupportedError';
+  }
+}

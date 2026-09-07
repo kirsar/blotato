@@ -1,5 +1,6 @@
-import { Injectable, type OnModuleInit, UnprocessableEntityException } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
+import { PlatformNotSupportedError } from '@domain/errors';
 import type { ICommentReader, ICommentWriter } from './comment-provider.contract';
 import { PLATFORM_PROVIDER_METADATA } from './platform-provider.decorator';
 import type { PlatformId } from '@domain/platform-id';
@@ -39,7 +40,7 @@ export class ProviderRegistry implements OnModuleInit {
   private get(platform: PlatformId): Provider {
     const provider = this.providers.get(platform);
     if (!provider) {
-      throw new UnprocessableEntityException(`No provider registered for platform: ${platform}`);
+      throw new PlatformNotSupportedError(platform);
     }
     return provider;
   }

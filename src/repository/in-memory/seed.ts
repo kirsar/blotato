@@ -3,6 +3,7 @@ import { AutomationLevel } from '@domain/automation';
 import type { SocialAccount } from '@domain/social-account';
 import type { User } from '@domain/user';
 import { PlatformId } from '@domain/platform-id';
+import type { UserRepository } from '@repository/user.repository.contract';
 import type { AccountRepository } from '@repository/account.repository.contract';
 
 // SHA-256, not bcrypt — API keys are high-entropy random tokens, not low-entropy
@@ -17,9 +18,11 @@ export const SEED_API_KEY = 'demo-api-key';
 
 const SEED_CREATED_AT = new Date('2026-01-01T00:00:00.000Z');
 
-// User is schema-only for this take-home, not wired to real auth
-// (5.storage.md, Scope guardrail) — so there is no UserRepository. This constant is
-// the demo's single tenant; ApiKeyGuard validates against it directly.
+// The demo's single tenant, seeded into UserRepository at boot. Nothing outside this
+// file imports it: ApiKeyGuard resolves a user by hashed key, and both the API and
+// the worker resolve the automation ceiling by userId through the repository — so no
+// caller assumes there is exactly one tenant, which is what makes the ceiling a real
+// per-tenant kill switch rather than a constant (5.storage.md, Scope guardrail).
 export const SEED_USER: User = {
   id: 'user_demo',
   displayName: 'Demo User',
@@ -75,4 +78,8 @@ export async function seedAccounts(accounts: AccountRepository): Promise<SocialA
     await accounts.create(account);
   }
   return seeded;
+}
+
+export async function seedUser(users: UserRepository): Promise<User> {
+  return users.create(SEED_USER);
 }

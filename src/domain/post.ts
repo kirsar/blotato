@@ -25,8 +25,8 @@ export interface PostSchedule {
   pollIntervalSec: number;
   emptyPollCount: number;
   commentVelocity: number | null;
-  // TODO: that's where we can work more on platfroms extensions
-  // some social platfroms uses cursors, some timestamps
+  // TODO: that's where we can work more on platforms extensions
+  // some social platforms use cursors, some timestamps
   cursor: string | null;
   lastSyncedAt: Date | null;
   retiredAt: Date | null;

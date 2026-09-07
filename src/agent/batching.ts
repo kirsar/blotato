@@ -38,7 +38,7 @@ export function partitionByAccount(commentsBatch: PostComments[]): PostComments[
 // a cross-tenant prompt — an assertion, not a convention (4.agentic-integration.md).
 // Checks comments as well as posts: Comment.userId/accountId are denormalized, and
 // this is the one place a mismatch against the post's own values would matter.
-// batching by account guarantees also being within same platfrom
+// Batching by account also guarantees a single platform.
 export function assertSingleKey(commentsBatch: PostComments[]): void {
   if (commentsBatch.length === 0) {
     return;

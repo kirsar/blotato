@@ -7,7 +7,12 @@ export interface PostScheduleRepository {
   // OFF has exactly one representation: no row (5.storage.md). Distinct from a poll
   // window naturally aging out, which sets retiredAt via update() but keeps the row.
   delete(postId: string): Promise<void>;
-  // FOR UPDATE SKIP LOCKED stand-in — see in-memory-repository.ts for why this is safe
-  // without real locking in a single in-memory process.
+  // Stands in for `SELECT ... FOR UPDATE SKIP LOCKED`, but does not implement it: this
+  // is a plain read, with no lease and nothing marking a row as claimed. It is safe
+  // here only because the demo runs exactly one worker, whose loop chains each pass
+  // with setTimeout rather than setInterval (main.worker.ts) so two passes can never
+  // overlap. A second worker process against this implementation would claim the same
+  // rows and publish every reply twice — a real deployment needs the actual row lock,
+  // or a lease column with an expiry (1.overall-architecture.md).
   claimDue(now: Date, limit: number): Promise<PostSchedule[]>;
 }

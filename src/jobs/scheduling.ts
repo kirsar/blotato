@@ -1,4 +1,3 @@
-// NB: mainly wibe-coded, just to have some running job
 // Adaptive polling interval — target-yield while active, geometric backoff when
 // quiet, jitter to decorrelate a fleet scheduled at the same moment, and a poll
 // window decoupled from retention so the fleet stops paying for a post that will
