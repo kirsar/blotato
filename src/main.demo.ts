@@ -14,6 +14,7 @@ import { CommentAutomationService } from './api/composition/comment-automation.s
 import { CompositionController } from './api/composition/composition.controller';
 import { CompositionService } from './api/composition/composition.service';
 import { PlatformController } from './api/platform/platform.controller';
+import { SubscriptionController } from './api/subscription/subscription.controller';
 import { HealthModule } from './health/health.module';
 import { CommentPipelineService } from './jobs/comment-pipeline.service';
 
@@ -29,7 +30,13 @@ const POLL_LOOP_MS = 5000;
 // the worker's effects show up on its next GET actually possible.
 @Module({
   imports: [RepositoryModule, HealthModule, PlatformsModule, AgentModule],
-  controllers: [AccountController, PlatformController, CompositionController, CommentController],
+  controllers: [
+    PlatformController,
+    AccountController,
+    CompositionController,
+    CommentController,
+    SubscriptionController,
+  ],
   providers: [
     { provide: APP_GUARD, useClass: ApiKeyGuard },
     CompositionService,

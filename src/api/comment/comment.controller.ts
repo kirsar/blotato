@@ -18,20 +18,14 @@ export class CommentController {
   }
 
   @Get(':id')
-  async get(
-    @CurrentUserId() userId: string,
-    @Param('id') id: string,
-  ): Promise<CommentResponseDto> {
+  async get(@CurrentUserId() userId: string, @Param('id') id: string): Promise<CommentResponseDto> {
     return this.comments.findById(userId, id);
   }
 
   @Post()
   @UseInterceptors(CommentIdempotencyInterceptor)
   @HttpCode(201)
-  async create(
-    @CurrentUserId() userId: string,
-    @Body() dto: CreateCommentDto,
-  ): Promise<CommentResponseDto> {
+  async create(@CurrentUserId() userId: string, @Body() dto: CreateCommentDto): Promise<CommentResponseDto> {
     return this.comments.create(userId, dto);
   }
 }

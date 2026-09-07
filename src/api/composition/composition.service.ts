@@ -7,7 +7,11 @@ import type { CompositionRepository } from '@repository/composition.repository.c
 import type { PostRepository } from '@repository/post.repository.contract';
 import { ACCOUNT_REPOSITORY, COMPOSITION_REPOSITORY, POST_REPOSITORY } from '@repository/tokens';
 import { createId } from '@repository/create-id';
-import { type CompositionResponseDto, type CreateCompositionDto, toCompositionResponse } from './composition.dto';
+import {
+  type CompositionResponseDto,
+  type CreateCompositionDto,
+  toCompositionResponse,
+} from './composition.dto';
 import { findOwnedComposition } from './find-owned-composition';
 
 @Injectable()

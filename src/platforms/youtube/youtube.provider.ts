@@ -3,7 +3,12 @@ import type { Comment } from '@domain/comment';
 import { CommentGoneError, PostUnavailableError } from '@domain/errors';
 import type { Post, PostSchedule } from '@domain/post';
 import { createId } from '@repository/create-id';
-import type { FetchedComment, FetchedPage, ICommentReader, ICommentWriter } from '../provider/comment-provider.contract';
+import type {
+  FetchedComment,
+  FetchedPage,
+  ICommentReader,
+  ICommentWriter,
+} from '../provider/comment-provider.contract';
 import { CREDENTIAL_STORE } from '../credential-store.contract';
 import type { ICredentialStore } from '../credential-store.contract';
 import { checkInjectedFailure } from '../injected-failure';
@@ -31,7 +36,7 @@ export class YouTubeProvider implements ICommentReader, ICommentWriter {
     }
 
     await this.credentials.resolve(post.accountId, 'read');
-    
+
     await simulateLatency();
     checkInjectedFailure(post.content);
 

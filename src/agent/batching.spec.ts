@@ -82,7 +82,10 @@ describe('assertSingleKey — the cross-tenant guard', () => {
   it('throws BatchIntegrityError when a second post has a different accountId', () => {
     const batch: PostComments[] = [
       [makePost(), [makeComment()]],
-      [makePost({ id: 'post_2', accountId: 'account_2' }), [makeComment({ id: 'c2', accountId: 'account_2' })]],
+      [
+        makePost({ id: 'post_2', accountId: 'account_2' }),
+        [makeComment({ id: 'c2', accountId: 'account_2' })],
+      ],
     ];
     expect(() => assertSingleKey(batch)).toThrow(BatchIntegrityError);
   });
@@ -120,7 +123,10 @@ describe('capBatch', () => {
     const manyComments = Array.from({ length: 50 }, (_, i) => makeComment({ id: `c${i}` }));
     const igBatch: PostComments[] = [[makePost({ platform: PlatformId.INSTAGRAM }), manyComments]];
     const ytBatch: PostComments[] = [
-      [makePost({ platform: PlatformId.YOUTUBE }), manyComments.map((c) => ({ ...c, platform: PlatformId.YOUTUBE }))],
+      [
+        makePost({ platform: PlatformId.YOUTUBE }),
+        manyComments.map((c) => ({ ...c, platform: PlatformId.YOUTUBE })),
+      ],
     ];
 
     const igCapped = capBatch(igBatch);

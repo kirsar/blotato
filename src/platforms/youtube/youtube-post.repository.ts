@@ -7,6 +7,4 @@ import type { YouTubePostRepository } from './youtube-post.repository.contract';
 @Injectable()
 export class InMemoryYouTubePostRepository
   extends InMemoryExtensionRepository<Post, YouTubePost>
-  implements YouTubePostRepository
-{
-}
+  implements YouTubePostRepository {}

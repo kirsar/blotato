@@ -1,4 +1,9 @@
-import { CredentialInvalidError, PlatformApiError, PlatformRejectedError, ThrottledError } from '@domain/errors';
+import {
+  CredentialInvalidError,
+  PlatformApiError,
+  PlatformRejectedError,
+  ThrottledError,
+} from '@domain/errors';
 
 // A deterministic seam so every error in the taxonomy is reachable from Swagger UI
 // on demand, with no credentials and no network (3.social-media-integration.md,
@@ -11,7 +16,9 @@ import { CredentialInvalidError, PlatformApiError, PlatformRejectedError, Thrott
 // reachable through real, structural conditions instead (a Story/private post, and
 // deleting the same reply twice), which is a better demonstration than a magic string.
 export function checkInjectedFailure(content: string | null | undefined): void {
-  if (!content) return;
+  if (!content) {
+    return;
+  }
   if (content.includes('[[THROTTLE]]')) {
     throw new ThrottledError('Injected failure: throttled', undefined, 30);
   }

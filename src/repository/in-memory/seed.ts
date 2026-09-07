@@ -4,7 +4,6 @@ import type { SocialAccount } from '@domain/social-account';
 import type { User } from '@domain/user';
 import { PlatformId } from '@domain/platform-id';
 import type { AccountRepository } from '@repository/account.repository.contract';
-import { createId } from '@repository/create-id';
 
 // SHA-256, not bcrypt — API keys are high-entropy random tokens, not low-entropy
 // human passwords, so they don't need a deliberately slow adaptive hash.
@@ -32,7 +31,10 @@ export const SEED_USER: User = {
 export async function seedAccounts(accounts: AccountRepository): Promise<SocialAccount[]> {
   const seeded: SocialAccount[] = [
     {
-      id: createId(),
+      // Fixed, not createId() — same reasoning as SEED_USER.id above: a demo seed
+      // account has nothing to hide, and a stable id means a Swagger example can
+      // reference a real accountId that's actually correct on every boot.
+      id: 'account_ig_demo',
       userId: SEED_USER.id,
       platform: PlatformId.INSTAGRAM,
       platformAccountId: 'ig_demo_account',
@@ -41,7 +43,7 @@ export async function seedAccounts(accounts: AccountRepository): Promise<SocialA
       createdAt: SEED_CREATED_AT,
     },
     {
-      id: createId(),
+      id: 'account_yt_demo',
       userId: SEED_USER.id,
       platform: PlatformId.YOUTUBE,
       platformAccountId: 'yt_demo_channel',

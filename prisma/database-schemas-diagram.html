@@ -1,43 +1,62 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blotato — Database Schema</title>
-<style>
-  :root { color-scheme: light dark; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #ffffff;
-    color: #1a1a1a;
-  }
-  header {
-    padding: 20px 24px 12px;
-    border-bottom: 1px solid #e5e5e5;
-  }
-  h1 { margin: 0 0 4px; font-size: 1.25rem; }
-  p.sub { margin: 0; color: #666; font-size: 0.85rem; }
-  #diagram-wrap {
-    padding: 24px;
-    overflow: auto;
-  }
-  .mermaid { display: flex; justify-content: center; }
-  footer {
-    padding: 8px 24px 20px;
-    color: #999;
-    font-size: 0.75rem;
-  }
-  code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; }
-</style>
-</head>
-<body>
-<header>
-  <h1>Blotato — Database Schema</h1>
-  <p class="sub">Generated from <code>prisma/schema.prisma</code> · source of truth: <code>.claude/plans/5.storage.md</code></p>
-</header>
-<div id="diagram-wrap">
-<pre class="mermaid">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blotato — Database Schema</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #ffffff;
+        color: #1a1a1a;
+      }
+      header {
+        padding: 20px 24px 12px;
+        border-bottom: 1px solid #e5e5e5;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.25rem;
+      }
+      p.sub {
+        margin: 0;
+        color: #666;
+        font-size: 0.85rem;
+      }
+      #diagram-wrap {
+        padding: 24px;
+        overflow: auto;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      footer {
+        padding: 8px 24px 20px;
+        color: #999;
+        font-size: 0.75rem;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 1px 5px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Blotato — Database Schema</h1>
+      <p class="sub">
+        Generated from <code>prisma/schema.prisma</code> · source of truth:
+        <code>.claude/plans/5.storage.md</code>
+      </p>
+    </header>
+    <div id="diagram-wrap">
+      <pre class="mermaid">
 erDiagram
     USER ||--o{ SOCIAL_ACCOUNT : "1:*"
     USER ||--o{ COMPOSITION : "1:*"
@@ -135,17 +154,18 @@ erDiagram
         datetime updatedAt
     }
 </pre>
-</div>
-<footer>
-  Open in a browser to view. Regenerate by re-running the schema-diagram script whenever <code>prisma/schema.prisma</code> changes.
-</footer>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
-<script>
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
-    er: { fontSize: 13 }
-  });
-</script>
-</body>
+    </div>
+    <footer>
+      Open in a browser to view. Regenerate by re-running the schema-diagram script whenever
+      <code>prisma/schema.prisma</code> changes.
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
+        er: { fontSize: 13 },
+      });
+    </script>
+  </body>
 </html>

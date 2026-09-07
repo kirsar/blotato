@@ -43,27 +43,47 @@ describe('effective', () => {
 
   it('lets the post-level schedule lower further than the composition', () => {
     expect(
-      effective(user(AutomationLevel.REPLY), composition(AutomationLevel.REPLY), schedule(AutomationLevel.COLLECT)),
+      effective(
+        user(AutomationLevel.REPLY),
+        composition(AutomationLevel.REPLY),
+        schedule(AutomationLevel.COLLECT),
+      ),
     ).toBe(AutomationLevel.COLLECT);
   });
 
   it('never lets a lower rung promote past the account ceiling', () => {
     expect(
-      effective(user(AutomationLevel.COLLECT), composition(AutomationLevel.REPLY), schedule(AutomationLevel.REPLY)),
+      effective(
+        user(AutomationLevel.COLLECT),
+        composition(AutomationLevel.REPLY),
+        schedule(AutomationLevel.REPLY),
+      ),
     ).toBe(AutomationLevel.COLLECT);
   });
 
   it('OFF at any rung wins over every other rung', () => {
     expect(
-      effective(user(AutomationLevel.OFF), composition(AutomationLevel.REPLY), schedule(AutomationLevel.REPLY)),
+      effective(
+        user(AutomationLevel.OFF),
+        composition(AutomationLevel.REPLY),
+        schedule(AutomationLevel.REPLY),
+      ),
     ).toBe(AutomationLevel.OFF);
 
     expect(
-      effective(user(AutomationLevel.REPLY), composition(AutomationLevel.OFF), schedule(AutomationLevel.REPLY)),
+      effective(
+        user(AutomationLevel.REPLY),
+        composition(AutomationLevel.OFF),
+        schedule(AutomationLevel.REPLY),
+      ),
     ).toBe(AutomationLevel.OFF);
 
     expect(
-      effective(user(AutomationLevel.REPLY), composition(AutomationLevel.REPLY), schedule(AutomationLevel.OFF)),
+      effective(
+        user(AutomationLevel.REPLY),
+        composition(AutomationLevel.REPLY),
+        schedule(AutomationLevel.OFF),
+      ),
     ).toBe(AutomationLevel.OFF);
   });
 });

@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import type { Comment } from '@domain/comment';
 import { CommentStatus } from '@domain/comment';
 import { PLATFORMS } from '@platforms/registry';
@@ -34,7 +40,14 @@ export class CommentService {
       throw new BadRequestException('Exactly one of postId or compositionId is required');
     }
     if (hasPostId && (query.platform !== undefined || query.accountId !== undefined)) {
-      throw new BadRequestException('platform and accountId are only valid alongside compositionId');
+      const offending = [
+        query.platform !== undefined && 'platform',
+        query.accountId !== undefined && 'accountId',
+      ].filter(Boolean);
+      const verb = offending.length > 1 ? 'are' : 'is';
+      throw new BadRequestException(
+        `${offending.join(' and ')} ${verb} only valid alongside compositionId, not postId`,
+      );
     }
 
     const filter: CommentListFilter = {

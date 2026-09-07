@@ -10,6 +10,7 @@ import { CommentAutomationService } from './api/composition/comment-automation.s
 import { CompositionController } from './api/composition/composition.controller';
 import { CompositionService } from './api/composition/composition.service';
 import { PlatformController } from './api/platform/platform.controller';
+import { SubscriptionController } from './api/subscription/subscription.controller';
 import { HealthModule } from './health/health.module';
 
 // No custom exception filter — every thrown error is now one of Nest's own
@@ -22,7 +23,13 @@ import { HealthModule } from './health/health.module';
 // tradeoff this brings along (ProviderRegistry riding in with it, for now unused).
 @Module({
   imports: [RepositoryModule, HealthModule, PlatformsModule],
-  controllers: [AccountController, PlatformController, CompositionController, CommentController],
+  controllers: [
+    PlatformController,
+    AccountController,
+    CompositionController,
+    CommentController,
+    SubscriptionController,
+  ],
   providers: [
     { provide: APP_GUARD, useClass: ApiKeyGuard },
     CompositionService,

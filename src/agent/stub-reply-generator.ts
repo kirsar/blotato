@@ -17,7 +17,9 @@ export class StubReplyGenerator implements IReplyGenerator {
   constructor(@Inject(ACCOUNT_REPOSITORY) private readonly accounts: AccountRepository) {}
 
   async generate(batch: PostComments[]): Promise<Comment[]> {
-    if (batch.length === 0) return [];
+    if (batch.length === 0) {
+      return [];
+    }
 
     const [[firstPost]] = batch;
     const account = await this.accounts.findById(firstPost.accountId);

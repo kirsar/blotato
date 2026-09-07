@@ -15,8 +15,8 @@ npm install
 ## Build and test
 
 ```bash
-npm test            # vitest — 54 tests
 npm run build       # nest build
+npm test            # vitest — 54 tests
 ```
 
 ## Run the API
@@ -65,10 +65,11 @@ I picked **2** — to showcase both design of extensible platforms and passion o
   key, rather than one wide table or a generic key-value blob. See
   [`InstagramPost`](./src/platforms/instagram/instagram-post.ts) and
   [`YouTubePost`](./src/platforms/youtube/youtube-post.ts).
-- **Composition** — one authored piece of content, fanned out to the posts on multiple platforms at once.
+- **Composition** — one authored piece of content, fanned out to a set og posts on multiple platforms at once.
 - **Opt-in comment automation** — ability to turn comments automation on or off. A worker loop (claim → read → generate → write) ingests audience comments and posts replies on its own once automation is on.
-- **Webhook API (designed, not built)** — to let users avoid polling patterns. No
-  controller exists for it — see "Subscriptions" in
+- **Webhook API (designed, stubbed as `501`)** — to let users avoid polling patterns.
+  Routed and documented ([`src/api/subscription/`](./src/api/subscription/)) but not
+  implemented — see "Subscriptions" in
   [`2.api-surface.md`](./.claude/plans/2.api-surface.md).
 - **Idempotency keys on manual comments** — `POST /v1/comments` isn't safe to retry on its own: a client that times out and retries would otherwise create a second, duplicate reply.
 - **Adaptive polling** — target-yield interval while a post is active, geometric
@@ -76,10 +77,8 @@ I picked **2** — to showcase both design of extensible platforms and passion o
   request spikes, and a poll window decoupled from the retention window so a post
   isn't polled forever just because its data is still queryable
   ([`src/jobs/scheduling.ts`](./src/jobs/scheduling.ts)).
-- **Some code is vibe-coded on purpose**, just to get an end-to-end demo running —
-  `src/jobs/scheduling.ts`, `src/jobs/comment-pipeline.service.ts`, and
-  `src/demo/emulate-agent.ts` say so in their own header comments. Run the
-  [`live-demo`](./.claude/skills/live-demo/SKILL.md) skill to see it work.
+- **Some code is vibe-coded on purpose**, just to get an end-to-end system and test running —
+  `src/jobs/scheduling.ts`, `src/jobs/comment-pipeline.service.ts`.
 
 ## Repo overview
 

@@ -49,7 +49,10 @@ function hashBody(body: unknown): string {
 export class CommentIdempotencyInterceptor implements NestInterceptor {
   constructor(@Inject(COMMENT_REPOSITORY) private readonly comments: CommentRepository) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> | Promise<Observable<unknown>> {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<unknown> | Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest<RequestWithUserId>();
     const response = context.switchToHttp().getResponse<ResponseWithHeader>();
     const key = request.headers['idempotency-key'];

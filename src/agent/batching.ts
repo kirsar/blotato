@@ -25,8 +25,11 @@ export function partitionByAccount(commentsBatch: PostComments[]): PostComments[
     const [post] = postWithComments;
     const key = `${post.userId}::${post.accountId}`;
     const group = groups.get(key);
-    if (group) group.push(postWithComments);
-    else groups.set(key, [postWithComments]);
+    if (group) {
+      group.push(postWithComments);
+    } else {
+      groups.set(key, [postWithComments]);
+    }
   }
   return [...groups.values()];
 }
@@ -35,9 +38,11 @@ export function partitionByAccount(commentsBatch: PostComments[]): PostComments[
 // a cross-tenant prompt — an assertion, not a convention (4.agentic-integration.md).
 // Checks comments as well as posts: Comment.userId/accountId are denormalized, and
 // this is the one place a mismatch against the post's own values would matter.
-// batching by account guarantees also being within same platfrom 
+// batching by account guarantees also being within same platfrom
 export function assertSingleKey(commentsBatch: PostComments[]): void {
-  if (commentsBatch.length === 0) return;
+  if (commentsBatch.length === 0) {
+    return;
+  }
   const [[first]] = commentsBatch;
   for (const [post, comments] of commentsBatch) {
     if (post.userId !== first.userId || post.accountId !== first.accountId) {
@@ -57,17 +62,21 @@ export function assertSingleKey(commentsBatch: PostComments[]): void {
 // dropped. Assumes every pair in `pairs` already shares one platform (true once
 // partitionByAccount has run, since accountId determines platform).
 export function capBatch(commentsBatch: PostComments[]): PostComments[] {
-  if (commentsBatch.length === 0) return [];
+  if (commentsBatch.length === 0) {
+    return [];
+  }
   const [[firstPost]] = commentsBatch;
   const { maxCommentLength } = PLATFORMS[firstPost.platform];
   let remaining = Math.max(1, Math.floor(OUTPUT_BUDGET_CHARS / maxCommentLength));
 
   const capped: PostComments[] = [];
   for (const [post, comments] of commentsBatch) {
-    if (remaining <= 0) break;
-    
+    if (remaining <= 0) {
+      break;
+    }
+
     const take = comments.slice(0, remaining);
-    
+
     if (take.length > 0) {
       capped.push([post, take]);
     }

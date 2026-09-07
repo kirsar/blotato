@@ -63,15 +63,21 @@ function log(source: 'agent' | 'worker', message: string): void {
 // read, so this can be called every poll tick without reprinting the whole file.
 let logOffset = 0;
 function tailWorkerLog(): void {
-  if (!DEMO_LOG_PATH) return;
+  if (!DEMO_LOG_PATH) {
+    return;
+  }
   try {
     const { size } = statSync(DEMO_LOG_PATH);
-    if (size <= logOffset) return;
+    if (size <= logOffset) {
+      return;
+    }
     const buffer = readFileSync(DEMO_LOG_PATH);
     const chunk = buffer.subarray(logOffset, size).toString('utf-8');
     logOffset = size;
     for (const line of chunk.split('\n')) {
-      if (line.trim()) log('worker', line.trim());
+      if (line.trim()) {
+        log('worker', line.trim());
+      }
     }
   } catch {
     // Log file not created yet, or briefly locked by a concurrent write from the
@@ -82,7 +88,9 @@ function tailWorkerLog(): void {
 async function createActivity(accounts: Account[], counter: number): Promise<string[]> {
   const platform = counter % 2 === 0 ? 'INSTAGRAM' : 'YOUTUBE';
   const account = accounts.find((a) => a.platform === platform);
-  if (!account) return [];
+  if (!account) {
+    return [];
+  }
 
   const postBody =
     platform === 'INSTAGRAM'
@@ -108,7 +116,9 @@ async function createActivity(accounts: Account[], counter: number): Promise<str
 async function main(): Promise<void> {
   log('agent', 'fetching seeded accounts');
   const accounts = await api<Account[]>('/accounts');
-  if (accounts.length === 0) throw new Error('No seeded accounts found — is main.demo.ts running?');
+  if (accounts.length === 0) {
+    throw new Error('No seeded accounts found — is main.demo.ts running?');
+  }
 
   const trackedPostIds: string[] = [];
   const seenCommentIds = new Set<string>();
@@ -140,7 +150,9 @@ async function main(): Promise<void> {
       const { items } = await api<{ items: CommentView[] }>(`/comments?postId=${postId}`);
       for (const comment of items) {
         const key = `${postId}:${comment.id}`;
-        if (seenCommentIds.has(key)) continue;
+        if (seenCommentIds.has(key)) {
+          continue;
+        }
         seenCommentIds.add(key);
         log(
           'agent',

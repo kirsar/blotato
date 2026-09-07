@@ -15,7 +15,9 @@ export class ProviderRegistry implements OnModuleInit {
   onModuleInit(): void {
     for (const wrapper of this.discovery.getProviders()) {
       const instance = wrapper.instance as Provider | undefined;
-      if (!instance || !instance.constructor) continue;
+      if (!instance || !instance.constructor) {
+        continue;
+      }
       const platform: PlatformId | undefined = Reflect.getMetadata(
         PLATFORM_PROVIDER_METADATA,
         instance.constructor,

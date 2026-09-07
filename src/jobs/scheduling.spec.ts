@@ -81,7 +81,6 @@ describe('decayVelocity', () => {
 
   it('blends previous and observed for subsequent polls', () => {
     const previous = 0.01;
-    const observed = 36 / 3600; // 0.01 as well, so blended stays 0.01
     expect(decayVelocity(previous, 36, 3600)).toBeCloseTo(0.01, 5);
   });
 

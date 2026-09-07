@@ -22,7 +22,11 @@ export class CommentAutomationService {
   // under this composition, or un-retires one that already exists. Never raises past
   // the account ceiling — a caller who believes replies are going out when they
   // aren't is the worse failure by a wide margin (2.api-surface.md).
-  async putAutomation(userId: string, compositionId: string, automationDto: PutAutomationDto): Promise<AutomationResponseDto> {
+  async putAutomation(
+    userId: string,
+    compositionId: string,
+    automationDto: PutAutomationDto,
+  ): Promise<AutomationResponseDto> {
     await findOwnedComposition(this.compositions, userId, compositionId);
     const ceiling = SEED_USER.maxCommentAutomationLevel;
 
@@ -35,7 +39,9 @@ export class CommentAutomationService {
       );
     }
 
-    const updated = await this.compositions.update(compositionId, { commentAutomationLevel: automationDto.level ?? null });
+    const updated = await this.compositions.update(compositionId, {
+      commentAutomationLevel: automationDto.level ?? null,
+    });
     const posts = await this.posts.listByCompositionId(compositionId);
     const now = new Date();
 
@@ -74,7 +80,11 @@ export class CommentAutomationService {
       }
     }
 
-    return this.buildAutomationResponse(updated, ceiling, posts.map((post) => post.id));
+    return this.buildAutomationResponse(
+      updated,
+      ceiling,
+      posts.map((post) => post.id),
+    );
   }
 
   // Turns automation off (fan-out). Clearing Composition.commentAutomationLevel
@@ -100,7 +110,11 @@ export class CommentAutomationService {
     const composition = await findOwnedComposition(this.compositions, userId, compositionId);
     const ceiling = SEED_USER.maxCommentAutomationLevel;
     const posts = await this.posts.listByCompositionId(compositionId);
-    return this.buildAutomationResponse(composition, ceiling, posts.map((post) => post.id));
+    return this.buildAutomationResponse(
+      composition,
+      ceiling,
+      posts.map((post) => post.id),
+    );
   }
 
   private async buildAutomationResponse(

@@ -71,10 +71,7 @@ describe('YouTubeProvider — the same taxonomy, the platform-specific gate', ()
 
   it('since-mode listComments never returns a cursor', async () => {
     const provider = new YouTubeProvider(new FakeYouTubePostRepository(), new FakeCredentialStore());
-    const result = await provider.listComments(
-      makePost({ platform: PlatformId.YOUTUBE }),
-      makeSchedule(),
-    );
+    const result = await provider.listComments(makePost({ platform: PlatformId.YOUTUBE }), makeSchedule());
     expect(result.comments).toHaveLength(1);
     expect(result.nextCursor).toBeNull();
   });

@@ -27,7 +27,9 @@ export class InMemoryRepository<T> {
     private readonly idOf: (entity: T) => string,
     private readonly uniqueKeys: UniqueKeySpec<T>[] = [],
   ) {
-    for (const spec of uniqueKeys) this.uniqueIndexes.set(spec.name, new Map());
+    for (const spec of uniqueKeys) {
+      this.uniqueIndexes.set(spec.name, new Map());
+    }
   }
 
   private clone(entity: T): T {
@@ -71,7 +73,9 @@ export class InMemoryRepository<T> {
 
   protected async delete(id: string): Promise<void> {
     const existing = this.rows.get(id);
-    if (!existing) return;
+    if (!existing) {
+      return;
+    }
     this.deindexUnique(existing);
     this.rows.delete(id);
   }
@@ -83,7 +87,9 @@ export class InMemoryRepository<T> {
   protected findByUniqueKey(name: string, value: string): T | null {
     const index = this.uniqueIndexes.get(name);
     const id = index?.get(value);
-    if (!id) return null;
+    if (!id) {
+      return null;
+    }
     const found = this.rows.get(id);
     return found ? this.clone(found) : null;
   }
@@ -91,7 +97,9 @@ export class InMemoryRepository<T> {
   private assertUnique(entity: T, excludingId?: string): void {
     for (const spec of this.uniqueKeys) {
       const key = spec.keyOf(entity);
-      if (key === null) continue;
+      if (key === null) {
+        continue;
+      }
       const index = this.uniqueIndexes.get(spec.name)!;
       const existingId = index.get(key);
       if (existingId && existingId !== excludingId) {
@@ -103,7 +111,9 @@ export class InMemoryRepository<T> {
   private indexUnique(entity: T): void {
     for (const spec of this.uniqueKeys) {
       const key = spec.keyOf(entity);
-      if (key === null) continue;
+      if (key === null) {
+        continue;
+      }
       this.uniqueIndexes.get(spec.name)!.set(key, this.idOf(entity));
     }
   }
@@ -111,9 +121,10 @@ export class InMemoryRepository<T> {
   private deindexUnique(entity: T): void {
     for (const spec of this.uniqueKeys) {
       const key = spec.keyOf(entity);
-      if (key === null) continue;
+      if (key === null) {
+        continue;
+      }
       this.uniqueIndexes.get(spec.name)!.delete(key);
     }
   }
 }
-

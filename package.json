@@ -10,10 +10,15 @@
     "start:worker": "node dist/main.worker.js",
     "start:demo": "node dist/main.demo.js",
     "demo:emulate": "node dist/demo/emulate-agent.js",
+    "prebuild": "npm run lint && npm run format:check",
     "build": "nest build",
     "build:watch": "nest build --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prisma:validate": "prisma validate",
     "prisma:diff": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/init.sql"
   },
@@ -29,13 +34,18 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^10.4.0",
     "@nestjs/testing": "^10.4.0",
     "@types/node": "^20.14.10",
     "@types/supertest": "^6.0.2",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
     "prisma": "^5.20.0",
     "supertest": "^7.0.0",
     "typescript": "^5.5.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^2.0.5"
   },
   "allowScripts": {

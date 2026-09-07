@@ -9,6 +9,7 @@ import { CreateYouTubePostDto, YouTubePostResponseDto } from '@platforms/youtube
 
 @ApiExtraModels(CreateInstagramPostDto, CreateYouTubePostDto)
 export class CreateCompositionDto {
+  @ApiProperty({ example: 'Our new feature just shipped — check it out!' })
   @IsString()
   @IsNotEmpty()
   content!: string;
@@ -19,6 +20,17 @@ export class CreateCompositionDto {
       oneOf: [{ $ref: getSchemaPath(CreateInstagramPostDto) }, { $ref: getSchemaPath(CreateYouTubePostDto) }],
       discriminator: { propertyName: 'platform' },
     },
+    // Swagger UI's auto-generated example for a oneOf array doesn't know which
+    // fields pair with which discriminator value — left to its own devices it
+    // mixes them (e.g. platform: INSTAGRAM next to YouTube's privacyStatus), which
+    // then fails real validation. An explicit, correctly-paired example avoids that.
+    // account_ig_demo/account_yt_demo are the seeded accounts' real, fixed ids
+    // (seed.ts) — this example works as-is against a freshly booted server, no
+    // GET /v1/accounts round trip needed first.
+    example: [
+      { platform: PlatformId.INSTAGRAM, accountId: 'account_ig_demo', mediaProductType: 'FEED' },
+      { platform: PlatformId.YOUTUBE, accountId: 'account_yt_demo', privacyStatus: 'unlisted' },
+    ],
   })
   @IsArray()
   @ArrayMinSize(1)
@@ -55,7 +67,10 @@ export class CompositionResponseDto implements Omit<Composition, 'userId' | 'com
   @ApiProperty({
     type: 'array',
     items: {
-      oneOf: [{ $ref: getSchemaPath(InstagramPostResponseDto) }, { $ref: getSchemaPath(YouTubePostResponseDto) }],
+      oneOf: [
+        { $ref: getSchemaPath(InstagramPostResponseDto) },
+        { $ref: getSchemaPath(YouTubePostResponseDto) },
+      ],
       discriminator: { propertyName: 'platform' },
     },
   })

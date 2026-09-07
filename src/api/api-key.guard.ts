@@ -22,7 +22,9 @@ export class ApiKeyGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    if (isPublic) {
+      return true;
+    }
 
     const request = context.switchToHttp().getRequest<RequestWithUserId>();
     const apiKey = request.headers['blotato-api-key'];

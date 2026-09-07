@@ -1,12 +1,21 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import type { Comment } from '@domain/comment';
 import { PlatformId } from '@domain/platform-id';
 
 export class CreateCommentDto {
+  // No static example here on purpose — a real postId only exists once a composition
+  // has been created (its id is generated at creation time, unlike the seeded
+  // accounts), so any hardcoded value would just 404. Get one from a
+  // POST /v1/compositions response's posts[].id.
+  @ApiProperty({
+    description: "A real post id, e.g. from a composition's posts[].id after POST /v1/compositions.",
+  })
   @IsString()
   @IsNotEmpty()
   postId!: string;
 
+  @ApiProperty({ example: 'Thanks so much for the kind words!' })
   @IsString()
   @IsNotEmpty()
   text!: string;

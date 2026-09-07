@@ -30,7 +30,9 @@ function clamp(value: number, min: number, max: number): number {
 // that often; zero observed velocity means "not active," handled by the caller
 // falling back to backoffIntervalSec instead of dividing by zero here.
 export function targetYieldIntervalSec(policy: PollPolicy, observedVelocityPerSec: number): number {
-  if (observedVelocityPerSec <= 0) return policy.maxIntervalSec;
+  if (observedVelocityPerSec <= 0) {
+    return policy.maxIntervalSec;
+  }
   const raw = policy.targetYield / observedVelocityPerSec;
   return clamp(raw, policy.minIntervalSec, policy.maxIntervalSec);
 }
@@ -77,7 +79,9 @@ export function decayVelocity(
   elapsedSec: number,
 ): number {
   const observed = elapsedSec > 0 ? newCommentsCount / elapsedSec : 0;
-  if (previousVelocityPerSec === null) return observed;
+  if (previousVelocityPerSec === null) {
+    return observed;
+  }
   return VELOCITY_DECAY * previousVelocityPerSec + (1 - VELOCITY_DECAY) * observed;
 }
 

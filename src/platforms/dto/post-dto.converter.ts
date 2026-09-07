@@ -8,8 +8,7 @@ export abstract class PostDtoConverterBase<
   TPost extends Post,
   TCreatePostDto extends CreatePostBaseDto,
   TResponseDto extends PostResponseBaseDto,
-> implements PostDtoConverter
-{
+> implements PostDtoConverter {
   protected abstract readonly repository: ExtensionRepository<Post, TPost>;
 
   // Can't be generalized further like createPostExtension/attachPostExtension below

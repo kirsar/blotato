@@ -7,6 +7,4 @@ import type { InstagramPostRepository } from './instagram-post.repository.contra
 @Injectable()
 export class InMemoryInstagramPostRepository
   extends InMemoryExtensionRepository<Post, InstagramPost>
-  implements InstagramPostRepository
-{
-}
+  implements InstagramPostRepository {}

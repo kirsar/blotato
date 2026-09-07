@@ -1,6 +1,5 @@
 import type { AutomationLevel } from './automation';
 
-
 export interface User {
   id: string;
   displayName: string;

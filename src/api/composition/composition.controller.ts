@@ -21,10 +21,7 @@ export class CompositionController {
   }
 
   @Get(':id')
-  async get(
-    @CurrentUserId() userId: string,
-    @Param('id') id: string,
-  ): Promise<CompositionResponseDto> {
+  async get(@CurrentUserId() userId: string, @Param('id') id: string): Promise<CompositionResponseDto> {
     return this.compositions.findById(userId, id);
   }
 

@@ -61,17 +61,13 @@ describe('InMemoryCommentRepository — idempotency uniqueness', () => {
 describe('InMemoryCommentRepository — platform-comment uniqueness (re-ingest is an upsert)', () => {
   it('upsertInbound updates the existing row instead of duplicating it', async () => {
     const repo = new InMemoryCommentRepository();
-    const first = await repo.create(
-      makeComment({ platformCommentId: 'ig_c_1', text: 'first pass' }),
-    );
+    const first = await repo.create(makeComment({ platformCommentId: 'ig_c_1', text: 'first pass' }));
 
     const second = await repo.upsertInbound({ ...first, text: 'second pass' });
 
     expect(second.id).toBe(first.id);
     expect(second.text).toBe('second pass');
-    expect((await repo.findByPlatformCommentId('user_1', PlatformId.INSTAGRAM, 'ig_c_1'))?.id).toBe(
-      first.id,
-    );
+    expect((await repo.findByPlatformCommentId('user_1', PlatformId.INSTAGRAM, 'ig_c_1'))?.id).toBe(first.id);
   });
 
   it('a direct create() with a conflicting (userId, platform, platformCommentId) is rejected', async () => {

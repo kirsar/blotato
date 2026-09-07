@@ -34,10 +34,7 @@ function decodeCursor(cursor: string): { t: string; id: string } {
 }
 
 @Injectable()
-export class InMemoryCommentRepository
-  extends InMemoryRepository<Comment>
-  implements CommentRepository
-{
+export class InMemoryCommentRepository extends InMemoryRepository<Comment> implements CommentRepository {
   constructor() {
     super((c) => c.id, [uniquePlatformComment, uniqueIdempotency]);
   }
@@ -63,7 +60,10 @@ export class InMemoryCommentRepository
     platform: PlatformId,
     platformCommentId: string,
   ): Promise<Comment | null> {
-    return this.findByUniqueKey('userId_platform_platformCommentId', `${userId}::${platform}::${platformCommentId}`);
+    return this.findByUniqueKey(
+      'userId_platform_platformCommentId',
+      `${userId}::${platform}::${platformCommentId}`,
+    );
   }
 
   async upsertInbound(comment: Comment): Promise<Comment> {
@@ -103,9 +103,7 @@ export class InMemoryCommentRepository
   }
 
   async findQueuedReplies(postId: string): Promise<Comment[]> {
-    return this.all().filter(
-      (c) => c.postId === postId && c.isAuthor && c.status === CommentStatus.QUEUED,
-    );
+    return this.all().filter((c) => c.postId === postId && c.isAuthor && c.status === CommentStatus.QUEUED);
   }
 
   private paginate(items: Comment[], filter: CommentListFilter): CommentListResult {
@@ -133,7 +131,8 @@ export class InMemoryCommentRepository
     if (filter.cursor) {
       const { t, id } = decodeCursor(filter.cursor);
       filtered = filtered.filter(
-        (c) => c.platformCreatedAt.getTime() > new Date(t).getTime() ||
+        (c) =>
+          c.platformCreatedAt.getTime() > new Date(t).getTime() ||
           (c.platformCreatedAt.toISOString() === t && c.id > id),
       );
     }

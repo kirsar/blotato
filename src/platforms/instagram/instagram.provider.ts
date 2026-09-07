@@ -3,7 +3,12 @@ import type { Comment } from '@domain/comment';
 import { CommentGoneError, PostUnavailableError } from '@domain/errors';
 import type { Post, PostSchedule } from '@domain/post';
 import { createId } from '@repository/create-id';
-import type { FetchedComment, FetchedPage, ICommentReader, ICommentWriter } from '../provider/comment-provider.contract';
+import type {
+  FetchedComment,
+  FetchedPage,
+  ICommentReader,
+  ICommentWriter,
+} from '../provider/comment-provider.contract';
 import { CREDENTIAL_STORE } from '../credential-store.contract';
 import type { ICredentialStore } from '../credential-store.contract';
 import { checkInjectedFailure } from '../injected-failure';
@@ -35,7 +40,7 @@ export class InstagramProvider implements ICommentReader, ICommentWriter {
     }
 
     await this.credentials.resolve(post.accountId, 'read');
-    
+
     await simulateLatency();
     checkInjectedFailure(post.content);
 
@@ -58,16 +63,16 @@ export class InstagramProvider implements ICommentReader, ICommentWriter {
 
   async createReply(comment: Comment): Promise<{ platformCommentId: string; platformCreatedAt: Date }> {
     await this.credentials.resolve(comment.accountId, 'write');
-    
+
     await simulateLatency();
     checkInjectedFailure(comment.text);
-    
+
     return { platformCommentId: createId(), platformCreatedAt: new Date() };
   }
 
   async deleteComment(comment: Comment): Promise<void> {
     await this.credentials.resolve(comment.accountId, 'write');
-    
+
     await simulateLatency();
     checkInjectedFailure(comment.text);
 

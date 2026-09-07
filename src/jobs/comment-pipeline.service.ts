@@ -3,11 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AutomationLevel, effective, rank } from '@domain/automation';
 import { CommentStatus } from '@domain/comment';
 import type { PostSchedule } from '@domain/post';
-import {
-  CredentialInvalidError,
-  PlatformApiError,
-  ThrottledError,
-} from '@domain/errors';
+import { CredentialInvalidError, PlatformApiError, ThrottledError } from '@domain/errors';
 import { PLATFORMS } from '@platforms/registry';
 import { ProviderRegistry } from '@platforms/provider/provider-registry';
 import { assertSingleKey, capBatch, partitionByAccount } from '@agent/batching';
@@ -65,7 +61,9 @@ export class CommentPipelineService {
   // what gets published is whatever's actually persisted as QUEUED.
   async runOnce(now: Date = new Date()): Promise<void> {
     const dueSchedules = await this.postSchedules.claimDue(now, CLAIM_LIMIT);
-    if (dueSchedules.length === 0) return;
+    if (dueSchedules.length === 0) {
+      return;
+    }
 
     for (const schedule of dueSchedules) {
       await this.pollOne(schedule, now);
@@ -82,11 +80,15 @@ export class CommentPipelineService {
   // schedule's own polling state — scheduling.ts's whole reason to exist.
   private async pollOne(schedule: PostSchedule, now: Date): Promise<void> {
     const post = await this.posts.findById(schedule.postId);
-    if (!post) return;
+    if (!post) {
+      return;
+    }
 
     const composition = await this.compositions.findById(post.compositionId);
     const account = await this.accounts.findById(post.accountId);
-    if (!composition || !account) return;
+    if (!composition || !account) {
+      return;
+    }
 
     // effective() can only have gone down since PUT materialized this row — nothing
     // here can raise it — so a drop below COLLECT means retire rather than poll
@@ -116,7 +118,11 @@ export class CommentPipelineService {
 
     for (const fetched of page.comments) {
       const parent = fetched.platformParentCommentId
-        ? await this.comments.findByPlatformCommentId(post.userId, post.platform, fetched.platformParentCommentId)
+        ? await this.comments.findByPlatformCommentId(
+            post.userId,
+            post.platform,
+            fetched.platformParentCommentId,
+          )
         : null;
 
       await this.comments.upsertInbound({
@@ -169,17 +175,25 @@ export class CommentPipelineService {
     for (const schedule of schedules) {
       const post = await this.posts.findById(schedule.postId);
       const composition = post ? await this.compositions.findById(post.compositionId) : null;
-      if (!post || !composition) continue;
-      if (rank(effective(SEED_USER, composition, schedule)) < rank(AutomationLevel.REPLY)) continue;
+      if (!post || !composition) {
+        continue;
+      }
+      if (rank(effective(SEED_USER, composition, schedule)) < rank(AutomationLevel.REPLY)) {
+        continue;
+      }
 
       const awaiting = await this.comments.findAwaitingReply(post.id);
-      if (awaiting.length > 0) pairs.push([post, awaiting]);
+      if (awaiting.length > 0) {
+        pairs.push([post, awaiting]);
+      }
     }
 
     for (const partition of partitionByAccount(pairs)) {
       const capped = capBatch(partition);
       assertSingleKey(capped);
-      if (capped.length === 0) continue;
+      if (capped.length === 0) {
+        continue;
+      }
       const replies = await this.replyGenerator.generate(capped);
       for (const reply of replies) {
         await this.comments.create(reply);
@@ -218,7 +232,9 @@ export class CommentPipelineService {
 
   private isProviderWideFailure(err: unknown): boolean {
     return (
-      err instanceof ThrottledError || err instanceof PlatformApiError || err instanceof CredentialInvalidError
+      err instanceof ThrottledError ||
+      err instanceof PlatformApiError ||
+      err instanceof CredentialInvalidError
     );
   }
 }

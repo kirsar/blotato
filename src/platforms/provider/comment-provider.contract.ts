@@ -24,7 +24,7 @@ export interface ICommentReader {
 
 export interface ICommentWriter {
   createReply(comment: Comment): Promise<{ platformCommentId: string; platformCreatedAt: Date }>;
-  // TODO: isn't wired anywhere since it's dedicated feature to queue comment for deletion 
+  // TODO: isn't wired anywhere since it's dedicated feature to queue comment for deletion
   // and we don't want to have direct access to platforms from API, to be focused on quotas context
   deleteComment(comment: Comment): Promise<void>;
 }

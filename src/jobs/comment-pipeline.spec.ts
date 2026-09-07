@@ -4,7 +4,11 @@ import { CommentStatus } from '@domain/comment';
 import type { Comment } from '@domain/comment';
 import type { Post, PostSchedule } from '@domain/post';
 import { PlatformId } from '@domain/platform-id';
-import type { FetchedPage, ICommentReader, ICommentWriter } from '@platforms/provider/comment-provider.contract';
+import type {
+  FetchedPage,
+  ICommentReader,
+  ICommentWriter,
+} from '@platforms/provider/comment-provider.contract';
 import { StubReplyGenerator } from '@agent/stub-reply-generator';
 import { InMemoryAccountRepository } from '@repository/in-memory/account.repository';
 import { InMemoryCommentRepository } from '@repository/in-memory/comment.repository';

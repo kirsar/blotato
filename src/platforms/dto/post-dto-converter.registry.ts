@@ -18,7 +18,9 @@ export class PostDtoConverterRegistry implements OnModuleInit {
   onModuleInit(): void {
     for (const wrapper of this.discovery.getProviders()) {
       const instance = wrapper.instance as PostDtoConverter | undefined;
-      if (!instance || !instance.constructor) continue;
+      if (!instance || !instance.constructor) {
+        continue;
+      }
       const platform: PlatformId | undefined = Reflect.getMetadata(
         POST_DTO_CONVERTER_METADATA,
         instance.constructor,
