@@ -3,11 +3,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PlatformId } from '@domain/platform-id';
 import type { Post } from '@domain/post';
 
-// Lives in /api, not /platforms, even though InstagramPostDto/YouTubePostDto
-// (in the sibling files here) validate platform-specific values. class-validator
-// DTOs are an HTTP-request-validation concern, and /platforms has to stay usable by
-// the worker process too — the worker never receives an HTTP body to validate, so a
-// DTO living there would be dead weight for half its consumers.
+// Lives here, not in /api — CreateInstagramPostDto/CreateYouTubePostDto and their
+// response counterparts (in the sibling platform folders) need it as a real base
+// class, and /platforms can't import up into /api without creating a cycle. /api
+// still imports these going the existing, correct direction (down into /platforms)
+// for its own Swagger wiring (@ApiExtraModels, the discriminator's subTypes).
 
 // Base for the discriminated union used by CreateCompositionDto.posts. platform is
 // redeclared on each concrete subtype as a literal so the discriminator has
@@ -30,6 +30,10 @@ export abstract class CreatePostBaseDto {
   content?: string;
 }
 
+// Not generic, no abstract fromPost: TypeScript has no `abstract static`, so a base
+// class can't force subclasses to implement a static factory the way it can with an
+// instance method. Each subclass's own static fromPost is convention, not enforced —
+// the tradeoff for not needing a throwaway `new Subclass()` just to call it.
 export abstract class PostResponseBaseDto implements Post {
   id!: string;
   userId!: string;

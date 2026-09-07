@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { InstagramModule } from '@platforms/instagram/instagram.module';
-import { YouTubeModule } from '@platforms/youtube/youtube.module';
+import { PlatformsModule } from '@platforms/platforms.module';
 import { RepositoryModule } from '@repository/repository.module';
 import { AccountController } from './api/account/account.controller';
 import { ApiKeyGuard } from './api/api-key.guard';
@@ -16,12 +15,12 @@ import { HealthModule } from './health/health.module';
 // HttpException subclasses, so Nest's built-in default filter already produces
 // the right { statusCode, message, error } response with no wiring needed.
 //
-// Imports InstagramModule/YouTubeModule directly rather than PlatformsModule —
-// the web process only needs their extension-repository tokens (for
-// CompositionService); ProviderRegistry/DiscoveryModule are a worker-only
-// concern now that nothing here calls a provider directly.
+// Imports PlatformsModule now (not InstagramModule/YouTubeModule directly) — since
+// CompositionService dispatches post DTO conversion through PostDtoConverterRegistry,
+// the web process needs discovery too. See platforms.module.ts's comment for the
+// tradeoff this brings along (ProviderRegistry riding in with it, for now unused).
 @Module({
-  imports: [RepositoryModule, HealthModule, InstagramModule, YouTubeModule],
+  imports: [RepositoryModule, HealthModule, PlatformsModule],
   controllers: [AccountController, PlatformController, CompositionController, CommentController],
   providers: [
     { provide: APP_GUARD, useClass: ApiKeyGuard },

@@ -3,9 +3,9 @@ import { ArrayMinSize, IsArray, IsNotEmpty, IsString, ValidateNested } from 'cla
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { PlatformId } from '@domain/platform-id';
 import type { Composition } from '@domain/composition';
-import { CreatePostBaseDto, type PostResponseBaseDto } from '../post/post.dto';
-import { CreateInstagramPostDto, InstagramPostResponseDto } from '../post/instagram-post.dto';
-import { CreateYouTubePostDto, YouTubePostResponseDto } from '../post/youtube-post.dto';
+import { CreatePostBaseDto, type PostResponseBaseDto } from '@platforms/dto/post.dto';
+import { CreateInstagramPostDto, InstagramPostResponseDto } from '@platforms/instagram/instagram-post.dto';
+import { CreateYouTubePostDto, YouTubePostResponseDto } from '@platforms/youtube/youtube-post.dto';
 
 @ApiExtraModels(CreateInstagramPostDto, CreateYouTubePostDto)
 export class CreateCompositionDto {

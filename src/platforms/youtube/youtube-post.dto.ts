@@ -1,8 +1,7 @@
 import { IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import type { Post } from '@domain/post';
-import type { YouTubePost, YouTubePrivacyStatus } from '@platforms/youtube/youtube-post';
-import { CreatePostBaseDto, PostResponseBaseDto } from './post.dto';
+import type { YouTubePost, YouTubePrivacyStatus } from './youtube-post';
+import { CreatePostBaseDto, PostResponseBaseDto } from '../dto/post.dto';
 
 export class CreateYouTubePostDto extends CreatePostBaseDto {
   @ApiProperty({ enum: ['public', 'unlisted', 'private'] })

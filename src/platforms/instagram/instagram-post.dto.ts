@@ -1,7 +1,7 @@
 import { IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import type { InstagramMediaProductType, InstagramPost } from '@platforms/instagram/instagram-post';
-import { CreatePostBaseDto, PostResponseBaseDto } from './post.dto';
+import type { InstagramMediaProductType, InstagramPost } from './instagram-post';
+import { CreatePostBaseDto, PostResponseBaseDto } from '../dto/post.dto';
 
 export class CreateInstagramPostDto extends CreatePostBaseDto {
   @ApiProperty({ enum: ['FEED', 'REELS', 'STORY', 'AD'] })
@@ -13,9 +13,9 @@ export class InstagramPostResponseDto extends PostResponseBaseDto {
   @ApiProperty({ enum: ['FEED', 'REELS', 'STORY', 'AD'] })
   mediaProductType!: InstagramMediaProductType;
 
-  // Static, not instance — see the comment on PostResponseBaseDto. Takes the two
-  // pieces exactly as compositions.service.ts has them on hand: the base Post row
-  // from PostRepository, and the extension's own field from InstagramPostRepository.
+  // Static, not instance — see the comment on PostResponseBaseDto. Takes the single
+  // merged InstagramPost (Post fields + mediaProductType) that InstagramPostExtension
+  // Handler already assembles from its own Post and repository row.
   static fromPost(post: InstagramPost): InstagramPostResponseDto {
     return {
       id: post.id,
