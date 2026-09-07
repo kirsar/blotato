@@ -10,6 +10,7 @@ import { ApiKeyGuard } from './api/api-key.guard';
 import { setupOpenApi } from './api/openapi';
 import { CommentController } from './api/comment/comment.controller';
 import { CommentService } from './api/comment/comment.service';
+import { CommentAutomationService } from './api/composition/comment-automation.service';
 import { CompositionController } from './api/composition/composition.controller';
 import { CompositionService } from './api/composition/composition.service';
 import { PlatformController } from './api/platform/platform.controller';
@@ -32,6 +33,7 @@ const POLL_LOOP_MS = 5000;
   providers: [
     { provide: APP_GUARD, useClass: ApiKeyGuard },
     CompositionService,
+    CommentAutomationService,
     CommentService,
     CommentPipelineService,
   ],

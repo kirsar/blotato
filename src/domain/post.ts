@@ -3,6 +3,11 @@ import type { AutomationLevel } from './automation';
 
 export interface Post {
   id: string;
+  // Non-null only because every Post is currently authored via
+  // POST /v1/compositions — there's no other way for one to exist. Once a
+  // standalone per-platform post API is real (2.api-surface.md's `501`
+  // `/v1/posts` authoring routes), a post won't necessarily belong to a
+  // composition, and this will need to become nullable.
   compositionId: string;
   userId: string;
   accountId: string;

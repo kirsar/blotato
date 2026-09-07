@@ -6,6 +6,7 @@ import { AccountController } from './api/account/account.controller';
 import { ApiKeyGuard } from './api/api-key.guard';
 import { CommentController } from './api/comment/comment.controller';
 import { CommentService } from './api/comment/comment.service';
+import { CommentAutomationService } from './api/composition/comment-automation.service';
 import { CompositionController } from './api/composition/composition.controller';
 import { CompositionService } from './api/composition/composition.service';
 import { PlatformController } from './api/platform/platform.controller';
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module';
   providers: [
     { provide: APP_GUARD, useClass: ApiKeyGuard },
     CompositionService,
+    CommentAutomationService,
     CommentService,
   ],
 })

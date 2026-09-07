@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blotato — Services</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  h1 { margin: 0 0 4px; font-size: 1.25rem; }
+  p.sub { margin: 0; color: #666; font-size: 0.85rem; }
+  #diagram-wrap {
+    padding: 24px;
+    overflow: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; }
+
+  #cards {
+    padding: 0 24px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    border: 1px solid #e5e5e5;
+    border-left: 4px solid #4a7dbd;
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .card.out-of-scope {
+    border-left-color: #999;
+    border-style: dashed;
+    opacity: 0.85;
+  }
+  .card h2 {
+    margin: 0 0 2px;
+    font-size: 1rem;
+  }
+  .card .role {
+    margin: 0 0 10px;
+    color: #666;
+    font-size: 0.8rem;
+  }
+  .card dl {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+  .card dt {
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  .card dt:first-child { margin-top: 0; }
+  .card dd {
+    margin: 2px 0 0;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #eef3fb;
+    color: #35618f;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge.oos {
+    background: #f0f0f0;
+    color: #777;
+  }
+  footer {
+    padding: 8px 24px 20px;
+    color: #999;
+    font-size: 0.75rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e5e5e5; }
+    header { border-bottom-color: #333; }
+    p.sub, footer { color: #999; }
+    code { background: #2a2a2a; }
+    .card { border-color: #333; }
+    .card .role { color: #999; }
+    .badge { background: #24344a; color: #9dc0e8; }
+    .badge.oos { background: #2a2a2a; color: #999; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blotato — Services</h1>
+  <p class="sub">From <code>.claude/plans/0.services.md</code> · per-service Logic / Load / Capacity / Host / Scale, figures sourced from <code>0.capacity-planning.md</code></p>
+</header>
+
+<div id="diagram-wrap">
+<pre class="mermaid">
+flowchart LR
+    API["<b>API Service</b><br/>serves clients from our DB<br/>3+ instances"]
+    SR["<b>Scheduler-Retriever</b><br/>claims due posts, fetches comments<br/>3 instances"]
+    CG["<b>Content Generator</b><br/>filters &amp; drafts replies<br/>3 instances"]
+    RP["<b>Reply Publisher</b><br/>delivers replies to platform<br/>3 instances"]
+    WH["<b>Webhook Delivery</b><br/>notifies customers<br/>⛔ out of scope, not built"]
+
+    API -->|"seeds PostSchedule<br/>.nextPollAfter"| SR
+    SR -->|"upserts Comment rows<br/>(inbound)"| CG
+    CG -->|"writes Comment<br/>@ QUEUED"| RP
+    SR -.->|"comment event<br/>(designed only)"| WH
+    RP -.->|"reply-posted event<br/>(designed only)"| WH
+</pre>
+</div>
+
+<div id="cards">
+
+  <div class="card">
+    <h2>API Service</h2>
+    <p class="role">Serves our own clients from our own DB; no platform calls or polling here.</p>
+    <dl>
+      <dt>Logic</dt>
+      <dd>Request handler, not a loop — the only service with no queue. Reads hit Postgres directly (no platform fetch on <code>GET</code>). Writes are accepted and queued, never executed inline: <code>POST /comments</code> writes <code>Comment@QUEUED</code> and returns <code>201</code> immediately. Owns the automation surface — sets <code>Composition.commentAutomationLevel</code> / a <code>PostSchedule</code> override, and seeds <code>nextPollAfter</code>, which is what puts a post into the Scheduler-Retriever loop at all.</dd>
+      <dt>Load</dt>
+      <dd>~3.9 posts/sec write-side anchor. Client read volume is unestimated — a known gap, since reads are argued to dominate.</dd>
+      <dt>Capacity</dt>
+      <dd>Single instance handles low-hundreds to low-thousands req/sec for indexed CRUD — ~4/sec isn't close to it.</dd>
+      <dt>Host</dt>
+      <dd>Its own process — trivially separate from the three loop-based services.</dd>
+      <dt>Scale</dt>
+      <dd>3+ replicas from day one, for redundancy, not throughput.</dd>
+      <dt>When / how to scale</dt>
+      <dd>Scale on observed latency/CPU saturation, not the 4/sec figure. Add replicas behind the reverse proxy (Heroku's router). Stateless, so any replica serves any request.</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Scheduler-Retriever</h2>
+    <p class="role">Merges the Scheduler and Comment Retriever roles — one claim cycle serves both once dispatch is concurrent.</p>
+    <dl>
+      <dt>Logic</dt>
+      <dd>One loop: (1) claim posts whose <code>nextPollAfter</code> has passed via <code>FOR UPDATE SKIP LOCKED</code>; (2) retire posts past the polling window (~14d) or delete data (~45d) instead of re-queueing; (3) fetch incrementally from <code>CommentSyncState</code>'s cursor, never a full re-read; (4) reschedule adaptively — per-post interval from observed comment velocity, jittered so co-published posts don't stay phase-aligned.</dd>
+      <dt>Load</dt>
+      <dd>~430/sec retrieval (post arrival × ~110 polls/lifetime); the 14-day polling window brings this down to ~185/sec. A flat re-poll across the full 45-day window would be ~15,000/sec — ~22x over the platform's effective ceiling.</dd>
+      <dt>Capacity</dt>
+      <dd>~130 steady-state concurrent connections (430/sec × ~300ms) — well inside one instance's ~1,000 sustainable connections. Capacity needs one instance; dispatch still goes through a bounded-concurrency pool nesting a per-account rate limiter, since the platform quota is the real constraint.</dd>
+      <dt>Host</dt>
+      <dd>Own process — claim and fetch merged into one pipeline; separate from the API (loop vs. handler) and from Reply Publisher/Content Generator (different external dependency and rate-limit profile).</dd>
+      <dt>Scale</dt>
+      <dd>3 instances — redundancy baseline, not a capacity figure.</dd>
+      <dt>When / how to scale</dt>
+      <dd>Binding signal is the platform quota, not our infra — more instances spend the shared pool faster past the ceiling. Remaining levers: webhooks (the only one that buys quota), the 14-day window, and a quota-increase request.</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Content Generator</h2>
+    <p class="role">Decides which inbound comments deserve a reply and writes it. Bound by the AI provider's rate/cost limits, not our infra.</p>
+    <dl>
+      <dt>Logic</dt>
+      <dd>(1) Claim inbound comments with no reply yet via <code>@@index([parentCommentId, isAuthor])</code>; (2) filter low-signal comments (~75% of volume) before spending anything on the provider call; (3) group survivors by <code>(userId, accountId)</code>, one call per group, with the platform's <code>maxCommentLength</code> applied as a prompt constraint; (4) persist at <code>status=QUEUED</code> the moment the call returns — <code>DRAFT</code> is out of scope, so there's no promotion step.</dd>
+      <dt>Load</dt>
+      <dd>~49 reply generations/sec (~195/sec system-wide arrival × 25% reply-eligible). Batching doesn't pay at average volume (~1.07 replies/batch) but stays cheap insurance for bursts.</dd>
+      <dt>Capacity</dt>
+      <dd>~2.3s/call → ~113 in-flight calls, fits one instance. <strong>Cost, not concurrency, is the binding constraint</strong>: unbatched replies would run ~$39k-156k/month; prompt caching the per-user preamble cuts that to ~$16k-65k/month.</dd>
+      <dt>Host</dt>
+      <dd>Own process — different external dependency (AI provider) with its own rate-limit/backoff semantics than the platform-facing services.</dd>
+      <dt>Scale</dt>
+      <dd>3 instances, redundancy baseline — ~113 in-flight calls fit in one.</dd>
+      <dt>When / how to scale</dt>
+      <dd>Watch provider 429s/token throttling and reply backlog growth, plus cost per reply (it binds before concurrency). Scale up to the provider's rate ceiling, then: prompt caching first, then tighten the low-signal filter, then pool provider keys, then accept latency.</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Reply Publisher</h2>
+    <p class="role">Delivers approved (<code>QUEUED</code>) replies to the platform — the write side of platform integration.</p>
+    <dl>
+      <dt>Logic</dt>
+      <dd>(1) Select outbound <code>QUEUED</code> comments on the posts this pass claimed; (2) post through the platform provider via a bounded-concurrency pool nesting a per-account rate limiter; (3) record the outcome — <code>POSTED</code> with <code>platformCommentId</code>, or <code>FAILED</code> with an error code; a retryable failure writes nothing, so the row just stays <code>QUEUED</code> until the post next falls due. Writing <code>platformCommentId</code> also makes our own reply an idempotent upsert on the next poll — otherwise a failed status write risks the generator replying to itself.</dd>
+      <dt>Load</dt>
+      <dd>~49 replies/sec, one HTTP call per reply — most platforms don't accept a batch post.</dd>
+      <dt>Capacity</dt>
+      <dd>~15 concurrent in-flight calls, trivial for one instance. The real constraint is the platform's write cap (e.g. Instagram: 60 writes/hour/user) — at ~49/sec across ~10^5 accounts that's only ~3% of the cap.</dd>
+      <dt>Host</dt>
+      <dd>Independent: load is decorrelated from Scheduler-Retriever's, calls block on platform latency/rate limits, and it holds OAuth credentials for every connected account — isolation narrows blast radius.</dd>
+      <dt>Scale</dt>
+      <dd>3 instances, redundancy baseline — capacity alone needs well under one.</dd>
+      <dt>When / how to scale</dt>
+      <dd>Watch posting latency/backoff and platform 429s. Add instances up to each platform's own rate ceiling; beyond that, pool app credentials where allowed or accept latency.</dd>
+    </dl>
+  </div>
+
+  <div class="card out-of-scope">
+    <h2>Webhook Delivery <span class="badge oos">⛔ out of scope</span></h2>
+    <p class="role">Notifies <em>our customers</em> that a comment arrived or a reply posted, so integrators don't have to poll our API. Specified for shape; not built.</p>
+    <dl>
+      <dt>Logic</dt>
+      <dd>A pure consumer of a <code>WebhookDelivery</code> queue — never reads <code>Comment</code> itself. Producers (Scheduler-Retriever, Reply Publisher) insert delivery rows in the same transaction as their own write, making emission exactly-once by construction. The worker claims <code>QUEUED</code> rows, POSTs the frozen payload with an HMAC signature, and updates status/attempt/backoff.</dd>
+      <dt>Load</dt>
+      <dd>Bounded above by ~195 comment events/sec + ~49 reply events/sec ≈ ~244 deliveries/sec at full subscription uptake — far lower in practice.</dd>
+      <dt>Capacity</dt>
+      <dd>Customer endpoints are slower/less predictable than platform APIs (~500ms-2s) — ~244 concurrent in-flight calls, still inside one instance.</dd>
+      <dt>Host</dt>
+      <dd>Would be independent — it blocks on customer endpoint health, not platform rate limits; colocating it would let one hanging subscriber starve reply posting.</dd>
+      <dt>Scale</dt>
+      <dd>3 instances if built. Unlike every other service, there's no external ceiling here — it's the one service that genuinely scales by adding capacity.</dd>
+      <dt>Why it isn't built</dt>
+      <dd>The delivery mechanics match the Reply Publisher's shape, but the destination URL is attacker-controlled and SSRF protection isn't deferrable — a delivery worker without address filtering is a credential-exfiltration path. All-of-it or none-of-it, and the budget didn't cover all of it.</dd>
+    </dl>
+  </div>
+
+</div>
+
+<footer>
+  Open in a browser to view. Six logical roles collapse into five physical services — Scheduler and Comment Retriever merge into Scheduler-Retriever.
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
+    flowchart: { htmlLabels: true, curve: 'basis' }
+  });
+</script>
+</body>
+</html>

@@ -30,9 +30,12 @@ export class CommentResponseDto implements Omit<Comment, 'idempotencyKey' | 'req
   platformPostId!: string;
   platformCommentId!: string | null;
   platformParentCommentId!: string | null;
-  platformAccountId!: string;
+  // Nullable, not string: right-to-erasure nulls both fields in place (5.storage.md
+  // §6.3, @domain/comment.ts) — a non-null type here would misdescribe what an
+  // erased comment actually looks like in the response.
+  platformAccountId!: string | null;
   isAuthor!: boolean;
-  text!: string;
+  text!: string | null;
   platformCreatedAt!: Date;
   status!: Comment['status'];
   errorCode!: string | null;

@@ -73,7 +73,7 @@ erDiagram
         string userId FK
         string content
         datetime createdAt
-        enum commentAutomationLevel "nullable, rung 2"
+        enum commentAutomationLevel "OFF|COLLECT|DRAFT|REPLY, nullable (null = no override)"
     }
 
     POST {
@@ -100,7 +100,7 @@ erDiagram
 
     POST_SCHEDULE {
         string postId PK "shared PK, FK"
-        enum commentAutomationLevel "nullable, rung 3"
+        enum commentAutomationLevel "OFF|COLLECT|DRAFT|REPLY, nullable (null = no override)"
         datetime nextPollAfter "indexed"
         int pollIntervalSec
         int emptyPollCount

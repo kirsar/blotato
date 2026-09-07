@@ -10,8 +10,17 @@ export function setupOpenApi(app: INestApplication): void {
     .setDescription('Multi-platform comment retrieval and reply service')
     .setVersion('1.0')
     .addApiKey({ type: 'apiKey', name: 'blotato-api-key', in: 'header' }, 'blotato-api-key')
+    // addApiKey above only registers the scheme; nothing marks any route as
+    // requiring it, so Swagger UI won't attach the header on "Execute" without
+    // this — Authorize alone would just store the key and never send it.
+    .addSecurityRequirements('blotato-api-key')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // Without this, Swagger UI's default (persistAuthorization: false) forgets
+  // whatever's typed into "Authorize" on every reload — annoying for a reviewer
+  // re-visiting /docs, and the key is a demo constant anyway, not a real secret.
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: { persistAuthorization: true },
+  });
 }

@@ -1,12 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { CurrentUserId } from '../current-user-id.decorator';
 import { AutomationResponseDto, PutAutomationDto } from './automation.dto';
+import { CommentAutomationService } from './comment-automation.service';
 import { CompositionResponseDto, CreateCompositionDto } from './composition.dto';
 import { CompositionService } from './composition.service';
 
 @Controller('compositions')
 export class CompositionController {
-  constructor(private readonly compositions: CompositionService) {}
+  constructor(
+    private readonly compositions: CompositionService,
+    private readonly commentAutomation: CommentAutomationService,
+  ) {}
 
   @Post()
   async create(
@@ -33,13 +37,13 @@ export class CompositionController {
     @Param('id') id: string,
     @Body() dto: PutAutomationDto,
   ): Promise<void> {
-    await this.compositions.putAutomation(userId, id, dto);
+    await this.commentAutomation.putAutomation(userId, id, dto);
   }
 
   @Delete(':id/automation')
   @HttpCode(204)
   async deleteAutomation(@CurrentUserId() userId: string, @Param('id') id: string): Promise<void> {
-    await this.compositions.deleteAutomation(userId, id);
+    await this.commentAutomation.deleteAutomation(userId, id);
   }
 
   @Get(':id/automation')
@@ -47,6 +51,6 @@ export class CompositionController {
     @CurrentUserId() userId: string,
     @Param('id') id: string,
   ): Promise<AutomationResponseDto> {
-    return this.compositions.getAutomation(userId, id);
+    return this.commentAutomation.getAutomation(userId, id);
   }
 }

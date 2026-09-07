@@ -16,13 +16,17 @@ export interface Comment {
   postId: string;
   compositionId: string;
   parentCommentId: string | null;
-  platformAccountId: string;
+  // Nullable, not just optional: right-to-erasure (5.storage.md §6.3) scrubs a
+  // comment by nulling this and `text` on the row in place, rather than deleting it
+  // outright — deleting would dangle any reply whose parentCommentId points here.
+  // A non-null declaration here would make that operation impossible to persist.
+  platformAccountId: string | null;
   platformPostId: string;
   platformCommentId: string | null;
   platformParentCommentId: string | null;
   platformCreatedAt: Date;
   isAuthor: boolean;
-  text: string;
+  text: string | null;
   status: CommentStatus;
   errorCode: string | null;
   errorMessage: string | null;
