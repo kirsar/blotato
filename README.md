@@ -81,9 +81,8 @@ I picked **2** — to showcase both design of extensible platforms and passion o
 - **Composition** — one authored piece of content, fanned out to a set og posts on multiple platforms at once.
 - **Opt-in comment automation** — ability to turn comments automation on or off. A worker loop (claim → read → generate → write) ingests audience comments and posts replies on its own once automation is on.
 - **Webhook API (designed, stubbed as `501`)** — to let users avoid polling patterns.
-  Routed and documented ([`src/api/subscription/`](./src/api/subscription/)) but not
-  implemented — see "Subscriptions" in
-  [`2.api-surface.md`](./.claude/plans/2.api-surface.md).
+  Routed and documented ([`src/api/subscription/`](./src/api/subscription/)), not
+  implemented
 - **Idempotency keys on manual comments** — `POST /v1/comments` isn't safe to retry on its own: a client that times out and retries would otherwise create a second, duplicate reply.
 - **Adaptive polling** — target-yield interval while a post is active, geometric
   backoff once it goes quiet, jitter so a fleet of posts doesn't synchronize into
