@@ -1,0 +1,4 @@
+# The repo is LF-normalized: prettier writes LF, and every blob here is already LF.
+# Without this, Git-for-Windows' core.autocrlf=true checks out CRLF, `npm run format`
+# rewrites it to LF, and every file shows as modified with an empty diff.
+* text=auto eol=lf
