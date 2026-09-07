@@ -108,9 +108,14 @@ describe('InstagramProvider — the error taxonomy is reachable on demand', () =
     expect(second.comments).toHaveLength(1);
     expect(second.nextCursor).toBe('0');
 
+    // Caught up stays '0', not null: null reads back as 'no cursor yet' and would
+    // restart the count, so the backoff path would never be reached.
     const third = await provider.listComments(post, makeSchedule({ cursor: '0' }));
     expect(third.comments).toHaveLength(0);
-    expect(third.nextCursor).toBeNull();
+    expect(third.nextCursor).toBe('0');
+
+    const fourth = await provider.listComments(post, makeSchedule({ cursor: third.nextCursor }));
+    expect(fourth.comments).toHaveLength(0);
   });
 
   it('a Story is PostUnavailableError with permanent: true, without a credential call', async () => {

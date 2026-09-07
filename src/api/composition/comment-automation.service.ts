@@ -59,7 +59,15 @@ export class CommentAutomationService {
         // a retired schedule without resetting it would let it re-retire itself on
         // the very next pass, since createdAt would still be past the window. A
         // resubscribe is a new subscription for this purpose.
-        await this.postSchedules.update(post.id, { retiredAt: null, createdAt: now });
+        // Also reset the polling state: a backed-off schedule would otherwise not
+        // poll for hours after a resubscribe.
+        await this.postSchedules.update(post.id, {
+          retiredAt: null,
+          createdAt: now,
+          nextPollAfter: now,
+          pollIntervalSec: PLATFORMS[post.platform].poll.minIntervalSec,
+          emptyPollCount: 0,
+        });
       } else {
         const { poll } = PLATFORMS[post.platform];
         await this.postSchedules.upsert({

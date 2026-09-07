@@ -34,12 +34,22 @@ export class CommentListQueryDto {
   @IsString()
   accountId?: string;
 
-  @ApiProperty({ required: false, example: '2026-01-01T00:00:00.000Z' })
+  // No example on since/until, for the same reason as platform above. Swagger UI
+  // prefills examples into "Try it out", every seeded comment has
+  // platformCreatedAt = now, and list() filters platformCreatedAt <= until — so any
+  // fixed window would make the demo's flagship call return an empty page.
+  @ApiProperty({
+    required: false,
+    description: 'ISO 8601. Filters on platformCreatedAt — the platform clock, not ingest time.',
+  })
   @IsOptional()
   @IsISO8601()
   since?: string;
 
-  @ApiProperty({ required: false, example: '2026-02-01T00:00:00.000Z' })
+  @ApiProperty({
+    required: false,
+    description: 'ISO 8601. Filters on platformCreatedAt — the platform clock, not ingest time.',
+  })
   @IsOptional()
   @IsISO8601()
   until?: string;

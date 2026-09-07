@@ -38,4 +38,5 @@ export interface CommentRepository {
   findAwaitingReply(postId: string): Promise<Comment[]>;
   // The publisher's claim query: outbound replies on this post ready to deliver.
   findQueuedReplies(postId: string): Promise<Comment[]>;
+  findPostIdsWithQueuedReplies(): Promise<string[]>;
 }

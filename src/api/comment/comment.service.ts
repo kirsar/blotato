@@ -1,3 +1,4 @@
+import { InvalidCursorError } from '@domain/errors';
 import {
   BadRequestException,
   Inject,
@@ -60,9 +61,17 @@ export class CommentService {
       accountId: query.accountId,
     };
 
-    const result = hasPostId
-      ? await this.listByPostId(userId, query.postId!, filter)
-      : await this.listByCompositionId(userId, query.compositionId!, filter);
+    let result;
+    try {
+      result = hasPostId
+        ? await this.listByPostId(userId, query.postId!, filter)
+        : await this.listByCompositionId(userId, query.compositionId!, filter);
+    } catch (err) {
+      if (err instanceof InvalidCursorError) {
+        throw new BadRequestException('Malformed cursor');
+      }
+      throw err;
+    }
 
     return { items: result.items.map(toCommentResponse), cursor: result.cursor };
   }
@@ -101,6 +110,13 @@ export class CommentService {
       if (parentDepth + 1 > platformSpec.maxReplyDepth) {
         throw new UnprocessableEntityException(
           `Reply depth exceeds ${post.platform}'s max of ${platformSpec.maxReplyDepth}`,
+        );
+      }
+      if (!parent.platformCommentId) {
+        // Until the parent is confirmed on the platform there is nothing to reply
+        // to; posting anyway would silently create a top-level comment.
+        throw new UnprocessableEntityException(
+          `Comment ${parent.id} is not yet published to ${post.platform}`,
         );
       }
       platformParentCommentId = parent.platformCommentId;

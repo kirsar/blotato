@@ -64,3 +64,12 @@ export class CredentialInvalidError extends Error {
     this.name = 'CredentialInvalidError';
   }
 }
+
+// Malformed ?cursor= is client input, not a server fault. Thrown by the repository,
+// mapped to 400 by CommentService.list.
+export class InvalidCursorError extends Error {
+  constructor() {
+    super('Malformed cursor');
+    this.name = 'InvalidCursorError';
+  }
+}

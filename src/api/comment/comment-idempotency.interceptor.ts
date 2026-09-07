@@ -8,7 +8,9 @@ import {
   type NestInterceptor,
 } from '@nestjs/common';
 import { type Observable, of, switchMap, tap } from 'rxjs';
+import { CommentStatus } from '@domain/comment';
 import type { CommentRepository } from '@repository/comment.repository.contract';
+import { UniqueConstraintViolationError } from '@repository/in-memory/in-memory-repository';
 import { COMMENT_REPOSITORY } from '@repository/tokens';
 import { type CommentResponseDto, toCommentResponse } from './comment.dto';
 
@@ -22,8 +24,26 @@ interface ResponseWithHeader {
   setHeader(name: string, value: string): void;
 }
 
+// Key order is not part of a JSON body's meaning, so canonicalize before hashing —
+// otherwise an identical retry with reordered fields 409s.
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value as Record<string, unknown>)
+        .sort()
+        .map((k) => [k, canonicalize((value as Record<string, unknown>)[k])]),
+    );
+  }
+  return value;
+}
+
 function hashBody(body: unknown): string {
-  return createHash('sha256').update(JSON.stringify(body)).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(body)))
+    .digest('hex');
 }
 
 // The whole idempotency contract (2.api-surface.md) lives here, scoped to exactly
@@ -87,8 +107,29 @@ export class CommentIdempotencyInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       switchMap(async (result: CommentResponseDto) => {
-        const updated = await this.comments.update(result.id, { idempotencyKey: key, requestHash: hash });
-        return toCommentResponse(updated);
+        try {
+          const updated = await this.comments.update(result.id, { idempotencyKey: key, requestHash: hash });
+          return toCommentResponse(updated);
+        } catch (err) {
+          if (!(err instanceof UniqueConstraintViolationError)) {
+            throw err;
+          }
+          // A concurrent request with the same key won. Strand this duplicate so the
+          // publisher never delivers it, and return the winner.
+          await this.comments.update(result.id, {
+            status: CommentStatus.FAILED,
+            errorCode: 'IDEMPOTENCY_RACE',
+            errorMessage: 'Superseded by a concurrent request with the same Idempotency-Key',
+          });
+          const winner = await this.comments.findByIdempotencyKey(userId, key);
+          if (!winner) {
+            throw err;
+          }
+          if (winner.requestHash !== hash) {
+            throw new ConflictException('Idempotency-Key already used with a different request body');
+          }
+          return toCommentResponse(winner);
+        }
       }),
     );
   }

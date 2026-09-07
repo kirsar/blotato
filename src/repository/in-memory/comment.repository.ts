@@ -6,6 +6,7 @@ import type {
   CommentListResult,
   CommentRepository,
 } from '@repository/comment.repository.contract';
+import { InvalidCursorError } from '@domain/errors';
 import { InMemoryRepository, type UniqueKeySpec } from './in-memory-repository';
 
 const DEFAULT_LIMIT = 25;
@@ -30,7 +31,17 @@ function encodeCursor(comment: Comment): string {
 }
 
 function decodeCursor(cursor: string): { t: string; id: string } {
-  return JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+  } catch {
+    throw new InvalidCursorError();
+  }
+  const { t, id } = (parsed ?? {}) as { t?: unknown; id?: unknown };
+  if (typeof t !== 'string' || typeof id !== 'string' || Number.isNaN(Date.parse(t))) {
+    throw new InvalidCursorError();
+  }
+  return { t, id };
 }
 
 @Injectable()
@@ -75,7 +86,12 @@ export class InMemoryCommentRepository extends InMemoryRepository<Comment> imple
       comment.platform,
       comment.platformCommentId,
     );
-    return existing ? this.update(existing.id, comment) : this.create(comment);
+    if (!existing) {
+      return this.create(comment);
+    }
+    // Keep the stored id — the caller's is freshly generated and would orphan the map key.
+    const { id: _id, createdAt: _createdAt, ...patch } = comment;
+    return this.update(existing.id, patch);
   }
 
   async listByPostId(postId: string, filter: CommentListFilter): Promise<CommentListResult> {
@@ -104,6 +120,18 @@ export class InMemoryCommentRepository extends InMemoryRepository<Comment> imple
 
   async findQueuedReplies(postId: string): Promise<Comment[]> {
     return this.all().filter((c) => c.postId === postId && c.isAuthor && c.status === CommentStatus.QUEUED);
+  }
+
+  // A reply pushed through POST /v1/comments can sit on a post with no schedule,
+  // which the claim would never reach.
+  async findPostIdsWithQueuedReplies(): Promise<string[]> {
+    return [
+      ...new Set(
+        this.all()
+          .filter((c) => c.isAuthor && c.status === CommentStatus.QUEUED)
+          .map((c) => c.postId),
+      ),
+    ];
   }
 
   private paginate(items: Comment[], filter: CommentListFilter): CommentListResult {

@@ -32,6 +32,9 @@ export class StubReplyGenerator implements IReplyGenerator {
     for (const [post, comments] of batch) {
       const { maxCommentLength } = PLATFORMS[post.platform];
       for (const parent of comments) {
+        if (parent.text === null) {
+          continue;
+        }
         replies.push({
           id: createId(),
           userId: parent.userId,

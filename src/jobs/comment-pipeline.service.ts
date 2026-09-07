@@ -3,7 +3,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AutomationLevel, effective, rank } from '@domain/automation';
 import { CommentStatus } from '@domain/comment';
 import type { PostSchedule } from '@domain/post';
-import { CredentialInvalidError, PlatformApiError, ThrottledError } from '@domain/errors';
+import {
+  CredentialInvalidError,
+  PlatformApiError,
+  PostUnavailableError,
+  ThrottledError,
+} from '@domain/errors';
 import { PLATFORMS } from '@platforms/registry';
 import { ProviderRegistry } from '@platforms/provider/provider-registry';
 import { assertSingleKey, capBatch, partitionByAccount } from '@agent/batching';
@@ -64,15 +69,28 @@ export class CommentPipelineService {
     if (dueSchedules.length === 0) {
       return;
     }
+    this.logger.log(`claimed ${dueSchedules.length} due schedule(s)`);
 
     for (const schedule of dueSchedules) {
-      await this.pollOne(schedule, now);
+      try {
+        await this.pollOne(schedule, now);
+      } catch (err) {
+        // Back the schedule off rather than letting one poisoned post jam the claim.
+        this.logger.error(`post ${schedule.postId}: poll failed: ${(err as Error).message}`);
+        await this.backOff(schedule, now);
+      }
     }
 
     await this.generateReplies(dueSchedules);
 
-    for (const schedule of dueSchedules) {
-      await this.publishQueuedReplies(schedule.postId);
+    // Union with unscheduled posts: a reply from POST /v1/comments can be owed on a
+    // post automation never touched.
+    const postIds = new Set([
+      ...dueSchedules.map((s) => s.postId),
+      ...(await this.comments.findPostIdsWithQueuedReplies()),
+    ]);
+    for (const postId of postIds) {
+      await this.publishQueuedReplies(postId);
     }
   }
 
@@ -94,6 +112,7 @@ export class CommentPipelineService {
     // here can raise it — so a drop below COLLECT means retire rather than poll
     // (5.storage.md, "row existence is a consequence of the effective level").
     if (rank(effective(SEED_USER, composition, schedule)) < rank(AutomationLevel.COLLECT)) {
+      this.logger.log(`post ${post.id}: retired (automation dropped below collect)`);
       await this.postSchedules.update(schedule.postId, { retiredAt: now });
       return;
     }
@@ -103,16 +122,16 @@ export class CommentPipelineService {
     try {
       page = await this.providers.reader(post.platform).listComments(post, schedule);
     } catch (err) {
+      if (err instanceof PostUnavailableError && err.permanent) {
+        // A Story never becomes commentable, so re-polling it for 14 days is waste.
+        this.logger.log(`post ${post.id}: retired (permanently unavailable)`);
+        await this.postSchedules.update(schedule.postId, { retiredAt: now });
+        return;
+      }
       // Provider-wide failure: nothing was written, so backing off and retrying
-      // next pass is idempotent by construction (4.agentic-integration.md,
-      // "Failures").
+      // next pass is idempotent by construction (4.agentic-integration.md, "Failures").
       this.logger.warn(`listComments failed for post ${post.id}: ${(err as Error).message}`);
-      const interval = withJitter(backoffIntervalSec(policy, schedule.pollIntervalSec));
-      await this.postSchedules.update(schedule.postId, {
-        pollIntervalSec: interval,
-        nextPollAfter: new Date(now.getTime() + interval * 1000),
-        emptyPollCount: schedule.emptyPollCount + 1,
-      });
+      await this.backOff(schedule, now);
       return;
     }
 
@@ -157,6 +176,10 @@ export class CommentPipelineService {
     const velocity = decayVelocity(schedule.commentVelocity, page.comments.length, elapsedSec);
     const interval = withJitter(nextIntervalSec(policy, schedule.pollIntervalSec, velocity, gotNew));
 
+    this.logger.log(
+      `post ${post.id}: ingested ${page.comments.length} comment(s), next poll in ${Math.round(interval)}s`,
+    );
+
     await this.postSchedules.update(schedule.postId, {
       lastSyncedAt: now,
       pollIntervalSec: interval,
@@ -165,6 +188,18 @@ export class CommentPipelineService {
       emptyPollCount: gotNew ? 0 : schedule.emptyPollCount + 1,
       cursor: page.nextCursor,
       retiredAt: shouldRetire(schedule.createdAt, now, POLL_WINDOW_MS) ? now : null,
+    });
+  }
+
+  private async backOff(schedule: PostSchedule, now: Date): Promise<void> {
+    const post = await this.posts.findById(schedule.postId);
+    const policy =
+      PLATFORMS[post ? post.platform : (await this.posts.findById(schedule.postId))!.platform].poll;
+    const interval = withJitter(backoffIntervalSec(policy, schedule.pollIntervalSec));
+    await this.postSchedules.update(schedule.postId, {
+      pollIntervalSec: interval,
+      nextPollAfter: new Date(now.getTime() + interval * 1000),
+      emptyPollCount: schedule.emptyPollCount + 1,
     });
   }
 
@@ -195,6 +230,9 @@ export class CommentPipelineService {
         continue;
       }
       const replies = await this.replyGenerator.generate(capped);
+      if (replies.length > 0) {
+        this.logger.log(`generated ${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}`);
+      }
       for (const reply of replies) {
         await this.comments.create(reply);
       }
@@ -212,6 +250,7 @@ export class CommentPipelineService {
           platformCommentId: result.platformCommentId,
           platformCreatedAt: result.platformCreatedAt,
         });
+        this.logger.log(`post ${postId}: published reply ${reply.id}`);
       } catch (err) {
         if (this.isProviderWideFailure(err)) {
           // Nothing was written, so leaving this QUEUED is correct — it comes back

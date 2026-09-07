@@ -4,6 +4,19 @@ A multi-platform social media comment system: list/reply-to comments across Inst
 and YouTube through one API, plus an opt-in automation tier that polls, generates, and
 posts replies on its own.
 
+## Build, Discover and Learn
+
+- **Build** — `npm run build && npm test` (see "Build and test", below).
+- **Discover** — run the API and explore every real route in Swagger UI (see "Run the
+  API", below).
+- **Learn** — the full design reasoning lives in
+  [`.claude/plans/`](./.claude/plans/), written for AI-assisted review rather than a
+  human read start to finish (see "Features", below, for how to point an agent at it).
+  [`.claude/skills/live-demo`](./.claude/skills/live-demo/SKILL.md) — **very
+  experimental** — boots the whole system and emulates live HTTP traffic against it,
+  end to end, so you can watch automation actually happen rather than take it on
+  faith.
+
 ## Get started
 
 ```bash
@@ -96,11 +109,17 @@ I picked **2** — to showcase both design of extensible platforms and passion o
   (partition by tenant, cap by output budget).
 - [`src/jobs/`](./src/jobs/) — the scheduling math and the comment pipeline worker
   service (claim → read → generate → write).
-- [`src/demo/`](./src/demo/) — the HTTP-client emulator script used by the `live-demo`
-  skill.
+- [`src/demo/`](./src/demo/) — `emulate-agent.ts`, a continuous HTTP-client script that
+  creates compositions, turns automation on, and polls for replies — the thing the
+  `live-demo` skill drives.
 - [`src/main.web.ts`](./src/main.web.ts) — the HTTP API entrypoint.
 - [`src/main.worker.ts`](./src/main.worker.ts) — the comment pipeline worker entrypoint,
   a separate process from the API in production.
+- [`src/main.demo.ts`](./src/main.demo.ts) — demo-only: `web` + `worker` combined into
+  one process sharing one in-memory store, since two real processes can't see each
+  other's writes without a real database behind them. Never deployed for real — see
+  its own header comment.
 - [`.claude/plans/`](./.claude/plans/) — the design docs.
-- [`.claude/skills/`](./.claude/skills/) — `live-demo` and
-  `onboard-new-social-platform`.
+- [`.claude/skills/`](./.claude/skills/) — [`live-demo`](./.claude/skills/live-demo/SKILL.md)
+  (runs `main.demo.ts` + the emulator agent end to end) and
+  [`onboard-new-social-platform`](./.claude/skills/onboard-new-social-platform/SKILL.md).

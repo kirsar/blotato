@@ -48,7 +48,10 @@ export class InstagramProvider implements ICommentReader, ICommentWriter {
     // extra state is needed to simulate "caught up" after a couple of polls.
     const remaining = schedule.cursor ? Number(schedule.cursor) : GENERATED_POLLS_PER_POST;
     if (remaining <= 0) {
-      return { comments: [], nextCursor: null };
+      // Keep '0' rather than null — null reads back as "no cursor yet" and would
+      // restart the count, so the caught-up state (and the backoff it triggers)
+      // would never be reachable.
+      return { comments: [], nextCursor: '0' };
     }
 
     const comment: FetchedComment = {

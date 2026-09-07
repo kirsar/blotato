@@ -16,7 +16,10 @@ export default tseslint.config(
     rules: {
       // Always braced, never single-line — no `if (x) doThing();`.
       curly: ['error', 'all'],
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' },
+      ],
     },
   },
 );

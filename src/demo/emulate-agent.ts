@@ -20,12 +20,13 @@ const DEMO_LOG_PATH = process.env.DEMO_LOG_PATH;
 // non-interactively for a bounded window, this lets it exit on its own with a real
 // summary line instead of being killed mid-tick by an external timeout.
 const DEMO_DURATION_MS = process.env.DEMO_DURATION_MS ? Number(process.env.DEMO_DURATION_MS) : undefined;
-const CREATE_INTERVAL_MS = 15_000;
-const POLL_INTERVAL_MS = 3000;
+const CREATE_INTERVAL_MS = 8000;
+const POLL_INTERVAL_MS = 2000;
 
 interface Account {
   id: string;
   platform: string;
+  displayName: string;
 }
 
 interface Composition {
@@ -87,10 +88,14 @@ function tailWorkerLog(): void {
 
 async function createActivity(accounts: Account[], counter: number): Promise<string[]> {
   const platform = counter % 2 === 0 ? 'INSTAGRAM' : 'YOUTUBE';
-  const account = accounts.find((a) => a.platform === platform);
-  if (!account) {
+  // Rotate across every seeded account for this platform, not just the first match —
+  // with more than one account per platform seeded, this is what actually exercises
+  // them instead of always hitting the same one.
+  const matching = accounts.filter((a) => a.platform === platform);
+  if (matching.length === 0) {
     return [];
   }
+  const account = matching[Math.floor(counter / 2) % matching.length];
 
   const postBody =
     platform === 'INSTAGRAM'
@@ -102,7 +107,10 @@ async function createActivity(accounts: Account[], counter: number): Promise<str
     body: JSON.stringify({ content: `Emulated post #${counter}`, posts: [postBody] }),
   });
   const postIds = composition.posts.map((p) => p.id);
-  log('agent', `created composition ${composition.id} (${platform}), post(s): ${postIds.join(', ')}`);
+  log(
+    'agent',
+    `created composition ${composition.id} (${platform} via "${account.displayName}"), post(s): ${postIds.join(', ')}`,
+  );
 
   await api(`/compositions/${composition.id}/automation`, {
     method: 'PUT',

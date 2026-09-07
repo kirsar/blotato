@@ -1,3 +1,4 @@
+import type { Composition } from '@domain/composition';
 import { BadRequestException, Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import type { Post } from '@domain/post';
 import type { CreatePostBaseDto, PostResponseBaseDto } from '@platforms/dto/post.dto';
@@ -50,7 +51,7 @@ export class CompositionService {
 
     const createdPosts: PostResponseBaseDto[] = [];
     for (const postDto of dto.posts) {
-      createdPosts.push(await this.createPost(userId, composition.id, postDto));
+      createdPosts.push(await this.createPost(userId, composition, postDto));
     }
 
     return toCompositionResponse(composition, createdPosts);
@@ -61,13 +62,13 @@ export class CompositionService {
   // ...); this method never needs to.
   private async createPost(
     userId: string,
-    compositionId: string,
+    composition: Composition,
     postDto: CreatePostBaseDto,
   ): Promise<PostResponseBaseDto> {
     const now = new Date();
     const post = await this.posts.create({
       id: createId(),
-      compositionId,
+      compositionId: composition.id,
       userId,
       accountId: postDto.accountId,
       platform: postDto.platform,
@@ -75,7 +76,10 @@ export class CompositionService {
       // so both are set immediately rather than left null (2.api-surface.md,
       // "the response simply adding the server-assigned id, platformPostId and publishedAt").
       platformPostId: createId(),
-      content: postDto.content ?? null,
+      // Resolved here rather than at read: nothing can edit Composition.content
+      // afterwards (PATCH is 501), and leaving null left the documented fallback
+      // with no reader at all.
+      content: postDto.content ?? composition.content,
       publishedAt: now,
       createdAt: now,
     });
