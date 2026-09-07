@@ -7,6 +7,7 @@ export default defineConfig({
       '@domain': resolve(__dirname, 'src/domain'),
       '@platforms': resolve(__dirname, 'src/platforms'),
       '@repository': resolve(__dirname, 'src/repository'),
+      '@agent': resolve(__dirname, 'src/agent'),
     },
   },
 });

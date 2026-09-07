@@ -115,7 +115,7 @@ describe('InstagramProvider — the error taxonomy is reachable on demand', () =
 
   it('a Story is PostUnavailableError with permanent: true, without a credential call', async () => {
     const repo = new FakeInstagramPostRepository();
-    repo.set({ postId: 'post_1', mediaProductType: 'STORY' });
+    repo.set({ ...makePost(), mediaProductType: 'STORY' });
     const provider = new InstagramProvider(repo, new FakeCredentialStore());
 
     await expect(provider.listComments(makePost(), makeSchedule())).rejects.toSatisfy(

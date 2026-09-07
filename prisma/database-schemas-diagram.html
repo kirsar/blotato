@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blotato — Database Schema</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  h1 { margin: 0 0 4px; font-size: 1.25rem; }
+  p.sub { margin: 0; color: #666; font-size: 0.85rem; }
+  #diagram-wrap {
+    padding: 24px;
+    overflow: auto;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  footer {
+    padding: 8px 24px 20px;
+    color: #999;
+    font-size: 0.75rem;
+  }
+  code { background: #f2f2f2; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blotato — Database Schema</h1>
+  <p class="sub">Generated from <code>prisma/schema.prisma</code> · source of truth: <code>.claude/plans/5.storage.md</code></p>
+</header>
+<div id="diagram-wrap">
+<pre class="mermaid">
+erDiagram
+    USER ||--o{ SOCIAL_ACCOUNT : "1:*"
+    USER ||--o{ COMPOSITION : "1:*"
+    USER ||--o{ POST : "1:*"
+    COMPOSITION ||--o{ POST : "1:*"
+    SOCIAL_ACCOUNT ||--o{ POST : "1:*"
+    SOCIAL_ACCOUNT ||--o{ COMMENT : "1:*"
+    POST ||--o{ COMMENT : "1:*"
+    POST ||--o| POST_SCHEDULE : "1:1"
+    POST ||--o| INSTAGRAM_POST : "1:1"
+    POST ||--o| YOUTUBE_POST : "1:1"
+
+    USER {
+        string id PK
+        string displayName
+        string hashedApiKey UK
+        datetime createdAt
+        enum maxCommentAutomationLevel "OFF|COLLECT|DRAFT|REPLY"
+    }
+
+    SOCIAL_ACCOUNT {
+        string id PK
+        string userId FK
+        enum platform "INSTAGRAM|YOUTUBE"
+        string platformAccountId
+        string displayName
+        string credentialRef
+        datetime createdAt
+    }
+
+    COMPOSITION {
+        string id PK
+        string userId FK
+        string content
+        datetime createdAt
+        enum commentAutomationLevel "nullable, rung 2"
+    }
+
+    POST {
+        string id PK
+        string compositionId FK
+        string userId FK "denormalized"
+        string accountId FK
+        enum platform "INSTAGRAM|YOUTUBE"
+        string platformPostId
+        string content "nullable"
+        datetime publishedAt "nullable"
+        datetime createdAt
+    }
+
+    INSTAGRAM_POST {
+        string postId PK "shared PK, FK"
+        string mediaProductType "FEED|REELS|STORY|AD"
+    }
+
+    YOUTUBE_POST {
+        string postId PK "shared PK, FK"
+        string privacyStatus "public|unlisted|private"
+    }
+
+    POST_SCHEDULE {
+        string postId PK "shared PK, FK"
+        enum commentAutomationLevel "nullable, rung 3"
+        datetime nextPollAfter "indexed"
+        int pollIntervalSec
+        int emptyPollCount
+        float commentVelocity "nullable"
+        string cursor "nullable"
+        datetime lastSyncedAt "nullable"
+        datetime retiredAt "nullable"
+        datetime createdAt
+    }
+
+    COMMENT {
+        string id PK
+        string userId FK "denormalized"
+        string accountId FK
+        enum platform "INSTAGRAM|YOUTUBE"
+        string postId FK
+        string compositionId "denormalized, no FK"
+        string parentCommentId "our cuid, no FK"
+        string platformPostId
+        string platformCommentId "nullable"
+        string platformParentCommentId "nullable"
+        string platformAccountId "author id on platform"
+        boolean isAuthor
+        string text
+        datetime platformCreatedAt "indexed"
+        enum status "DRAFT|QUEUED|PROCESSING|POSTED|FAILED|DELETED"
+        string errorCode "nullable"
+        string errorMessage "nullable"
+        string idempotencyKey "nullable, partial unique"
+        string requestHash "nullable"
+        datetime createdAt
+        datetime updatedAt
+    }
+</pre>
+</div>
+<footer>
+  Open in a browser to view. Regenerate by re-running the schema-diagram script whenever <code>prisma/schema.prisma</code> changes.
+</footer>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
+    er: { fontSize: 13 }
+  });
+</script>
+</body>
+</html>

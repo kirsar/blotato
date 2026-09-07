@@ -61,7 +61,7 @@ function makeSchedule(overrides: Partial<PostSchedule> = {}): PostSchedule {
 describe('YouTubeProvider — the same taxonomy, the platform-specific gate', () => {
   it('a private video is PostUnavailableError with permanent: false', async () => {
     const repo = new FakeYouTubePostRepository();
-    repo.set({ postId: 'post_1', privacyStatus: 'private' });
+    repo.set({ ...makePost({ platform: PlatformId.YOUTUBE }), privacyStatus: 'private' });
     const provider = new YouTubeProvider(repo, new FakeCredentialStore());
 
     await expect(

@@ -7,4 +7,4 @@ export const YOUTUBE_POST_REPOSITORY = 'YOUTUBE_POST_REPOSITORY';
 
 export type YouTubePostRow = ExtensionRow<Post, YouTubePost>;
 
-export type YouTubePostRepository = ExtensionRepository<YouTubePostRow>;
+export type YouTubePostRepository = ExtensionRepository<Post, YouTubePost>;

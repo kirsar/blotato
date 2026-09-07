@@ -7,4 +7,4 @@ export const INSTAGRAM_POST_REPOSITORY = 'INSTAGRAM_POST_REPOSITORY';
 
 export type InstagramPostRow = ExtensionRow<Post, InstagramPost>;
 
-export type InstagramPostRepository = ExtensionRepository<InstagramPostRow>;
+export type InstagramPostRepository = ExtensionRepository<Post, InstagramPost>;

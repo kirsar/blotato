@@ -8,7 +8,8 @@
     "paths": {
       "@domain/*": ["src/domain/*"],
       "@platforms/*": ["src/platforms/*"],
-      "@repository/*": ["src/repository/*"]
+      "@repository/*": ["src/repository/*"],
+      "@agent/*": ["src/agent/*"]
     },
     "strict": true,
     "strictPropertyInitialization": false,
