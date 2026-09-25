@@ -30,7 +30,9 @@ being asked:
 
 ```bash
 npm run build       # nest build; prebuild gate runs lint + format:check first
-npm test            # vitest — 54 tests
+npm test            # vitest — 82 tests
+npm run test:unit   # the 54 co-located unit specs under src/
+npm run test:e2e    # the 28 supertest specs under test/
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint
 npm run format      # prettier --write
@@ -57,6 +59,8 @@ Path aliases (`tsconfig.json`): `@domain/*`, `@platforms/*`, `@repository/*`,
 - `src/agent/` — the stub reply generator and the batching rules.
 - `src/jobs/` — scheduling math (pure functions) and the pipeline worker.
 - `src/demo/` — `emulate-agent.ts`, a continuous HTTP client used by the live-demo skill.
+- `test/` — `api.e2e.spec.ts`, the one end-to-end spec. Everything else is co-located
+  with the code it covers; this one isn't, because it spans the whole API.
 
 ## Invariants
 
@@ -83,6 +87,13 @@ Breaking one of these breaks the point of the exercise:
    chains passes with `setTimeout`. Two workers would double-post every reply.
 7. **`DemoModule` in `main.demo.ts` duplicates `ApiRootModule` by hand.** If you add a
    controller or provider to one, add it to the other. Nothing keeps them in sync.
+8. **The SWC plugin in `vitest.config.ts` is not optional.** Vitest transforms with
+   esbuild, which cannot emit `design:paramtypes`, and Nest reads that metadata twice:
+   to resolve constructor params carrying no explicit `@Inject()` token, and — less
+   obviously — to tell `ValidationPipe` which DTO a handler parameter expects. Without
+   it the app still boots but **validates nothing**, so malformed bodies return 2xx and
+   `test/api.e2e.spec.ts` passes a system nobody runs. Adding `@Inject()` everywhere
+   fixes only the first half; it was tried and reverted.
 
 ## Where the reasoning lives
 

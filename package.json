@@ -14,6 +14,8 @@
     "build": "nest build",
     "build:watch": "nest build --watch",
     "test": "vitest run",
+    "test:unit": "vitest run src",
+    "test:e2e": "vitest run test",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -37,6 +39,7 @@
     "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^10.4.0",
     "@nestjs/testing": "^10.4.0",
+    "@swc/core": "^1.16.2",
     "@types/node": "^20.14.10",
     "@types/supertest": "^6.0.2",
     "eslint": "^10.10.0",
@@ -46,6 +49,7 @@
     "supertest": "^7.0.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.70.0",
+    "unplugin-swc": "^2.0.0",
     "vitest": "^2.0.5"
   },
   "allowScripts": {

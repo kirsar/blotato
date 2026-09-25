@@ -29,7 +29,9 @@ npm install
 
 ```bash
 npm run build       # nest build
-npm test            # vitest — 54 tests
+npm test            # vitest — 82 tests (54 unit + 28 HTTP end-to-end)
+npm run test:unit   # unit specs only
+npm run test:e2e    # end-to-end specs only
 ```
 
 ## Run the API

@@ -94,9 +94,12 @@ export class CommentService {
     if (!platformSpec.supportsComments) {
       throw new UnprocessableEntityException(`${post.platform} does not support comments`);
     }
+    // "Comment", not "Reply" — this runs before the parentCommentId block below, so
+    // it covers a top-level comment just as much as a reply. The depth message in
+    // that block stays "Reply", since nothing reaches it without a parent.
     if (dto.text.length > platformSpec.maxCommentLength) {
       throw new UnprocessableEntityException(
-        `Reply exceeds ${post.platform}'s ${platformSpec.maxCommentLength}-character limit`,
+        `Comment exceeds ${post.platform}'s ${platformSpec.maxCommentLength}-character limit`,
       );
     }
 
@@ -107,9 +110,16 @@ export class CommentService {
         throw new NotFoundException(`Comment not found: ${dto.parentCommentId}`);
       }
       const parentDepth = await this.depthOf(parent);
-      if (parentDepth + 1 > platformSpec.maxReplyDepth) {
+      const replyDepth = parentDepth + 1;
+      if (replyDepth > platformSpec.maxReplyDepth) {
+        // Name the depth actually attempted, not just the ceiling — "exceeds max of 1"
+        // alone reads as a contradiction to a caller whose reply sits at depth 2. At
+        // maxReplyDepth 1 this is the platform's own reply-to-a-reply rule
+        // (0.current-api-overview.md #1), so say which parent would be valid.
+        const remedy =
+          platformSpec.maxReplyDepth === 1 ? ' — parentCommentId must be a top-level comment' : '';
         throw new UnprocessableEntityException(
-          `Reply depth exceeds ${post.platform}'s max of ${platformSpec.maxReplyDepth}`,
+          `Reply would be at depth ${replyDepth}, but ${post.platform} allows a maximum reply depth of ${platformSpec.maxReplyDepth}${remedy}`,
         );
       }
       if (!parent.platformCommentId) {

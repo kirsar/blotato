@@ -20,6 +20,12 @@ export class CreateCommentDto {
   @IsNotEmpty()
   text!: string;
 
+  // The only place the top-level path is discoverable from Swagger — without this
+  // the field reads as required-in-spirit, and nothing says what omitting it does.
+  @ApiProperty({
+    required: false,
+    description: 'The comment being replied to. Omit it to post a top-level comment on the post instead.',
+  })
   @IsOptional()
   @IsString()
   parentCommentId?: string;
